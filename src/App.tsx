@@ -12,6 +12,8 @@ import Header from "./Components/Header";
 import Submissions from "./Components/Submissions";
 
 export default function App() {
+  console.log("Firebase bucket:", import.meta.env.VITE_TEST);
+
   return (
     <BrowserRouter>
       <UserProvider>
