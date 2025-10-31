@@ -1,34 +1,16 @@
-// ME
-// apiKey: "AIzaSyBc9fl9estr8Zy2bWlOWNxdCYdVA4JXONs",
-// authDomain: "people-data-app.firebaseapp.com",
-// projectId: "people-data-app",
-// storageBucket: "people-data-app.appspot.com", // Corrected
-// messagingSenderId: "33165089771",
-// appId: "1:33165089771:web:a1d28094202cff983997ae",
-// measurementId: "G-Y8GRH2G9XP",
-
-// KIVARO
-// apiKey: "AIzaSyC6Rnwy_t-aBOafeahbkxQT3dhx5MLtoqE",
-// authDomain: "vanitha-veed.firebaseapp.com",
-// projectId: "vanitha-veed",
-// storageBucket: "vanitha-veed.firebasestorage.app",
-// messagingSenderId: "616033443209",
-// appId: "1:616033443209:web:327898d45980ff54299558",
-// measurementId: "G-7T4VCHPXGS"
-
 // src/firebase.ts
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC6Rnwy_t-aBOafeahbkxQT3dhx5MLtoqE",
-  authDomain: "vanitha-veed.firebaseapp.com",
-  projectId: "vanitha-veed",
-  storageBucket: "vanitha-veed.appspot.com",
-  messagingSenderId: "616033443209",
-  appId: "1:616033443209:web:327898d45980ff54299558",
-  measurementId: "G-7T4VCHPXGS",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
