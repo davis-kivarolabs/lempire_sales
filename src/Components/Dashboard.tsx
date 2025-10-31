@@ -1,9 +1,13 @@
 // src/components/Dashboard.tsx
-import { signOut, auth } from "../firebase";
+// import { signOut, auth } from "../firebase";
+
+import { useUser } from "../context/UserContext";
 
 export default function Dashboard() {
+    const { logout } = useUser();
+
     async function handleLogout() {
-        await signOut(auth);
+        logout();
         window.location.href = "/login";
     }
 
