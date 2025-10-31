@@ -1,0 +1,146 @@
+/*
+styles.scss
+*/
+
+/* Modern UI Styling */
+
+.fg-root {
+  font-family: Inter, system-ui, sans-serif;
+  padding: 16px;
+  background: #f9fafb;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fg-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.btn {
+  background: #e5e7eb;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn:hover {
+  background: #d1d5db;
+}
+
+.btn.primary {
+  background: #0c555e;
+  color: white;
+}
+
+.btn.primary:hover {
+  background: #0c555e;
+}
+
+.btn.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn.small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.fg-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fg-grid {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.fg-grid-head {
+  display: flex;
+  position: sticky;
+  top: 0;
+  background: #f3f4f6;
+  padding: 10px;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 1;
+}
+
+.fg-grid-head-cell {
+  flex: 1;
+  padding: 0 8px;
+}
+
+.fg-grid-head-cell.actions {
+  width: 120px;
+  text-align: center;
+}
+
+.fg-grid-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.fg-grid-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.fg-grid-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.fg-grid-cell input,
+.fg-grid-cell select,
+.fg-grid-cell textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.fg-grid-cell textarea {
+  resize: vertical;
+  min-height: 40px;
+}
+
+.fg-grid-cell.actions {
+  justify-content: center;
+  gap: 6px;
+  width: 120px;
+}
+
+.fg-search,
+.fg-schema-name {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}

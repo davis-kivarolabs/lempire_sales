@@ -1,0 +1,22 @@
+[
+    {
+        "origin": [
+            "http://localhost:5173",
+            "https://dp5hv72f-5173.inc1.devtunnels.ms",
+            "https://vanitha-veed.web.app",
+            "https://vanitha-veed.firebaseapp.com"
+        ],
+        "method": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "HEAD"
+        ],
+        "maxAgeSeconds": 3600,
+        "responseHeader": [
+            "Content-Type",
+            "x-goog-meta-*"
+        ]
+    }
+]
