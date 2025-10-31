@@ -13,7 +13,7 @@ interface Submission {
     phone_1: string;
     phone_2: string;
     message_number: string;
-    district: any;
+    district: string;
     location: string;
     plot_ownership: string;
     plot_size: string[];
@@ -24,10 +24,11 @@ interface Submission {
     remarks: string;
     special_notes: string[];
     createdAt: any;
-    lead_person: any;
+    lead_person: string;
     requirment_id: string;
     user_id: string[];
     isSendMessage: string[];
+    voice_recording: string;
 }
 
 const Submissions = () => {
@@ -191,6 +192,7 @@ const Submissions = () => {
                                     "Rooms",
                                     "Budget",
                                     "Special Notes",
+                                    "voice_recording",
                                     "Send Message",
                                 ].map((head) => (
                                     <th key={head} className="px-4 py-3 border text-nowrap text-left font-medium">
@@ -226,6 +228,9 @@ const Submissions = () => {
                                     <td className="px-4 py-2">{sub.rooms.join(", ")}</td>
                                     <td className="px-4 py-2">{sub.budget}</td>
                                     <td className="px-4 py-2">{sub.special_notes.join(", ")}</td>
+                                    <td className="px-4 py-2">{sub.voice_recording ? <audio controls src={sub.voice_recording} className="mt-2 w-full" /> : <span className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs">
+                                        No Voices
+                                    </span>}</td>
                                     <td className="px-4 py-2 text-center">
                                         {!sub.message_number ? <>
                                             <span className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs">

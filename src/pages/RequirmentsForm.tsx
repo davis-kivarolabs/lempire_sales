@@ -14,14 +14,21 @@ import {
     startingTime,
 } from "../data";
 import { useUser } from "../context/UserContext";
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import "./pages.scss";
 import VoiceRecorder from "../Components/VoiceRecorder";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 // import VoiceRecorder from "../Components/VoiceRecorder";
 
 const RequirmentsForm = () => {
     const { user } = useUser();
+
+    const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+    const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+    console.log(voiceUrl, uploading)
 
     const [formData, setFormData] = useState({
         client_name: "",
@@ -76,12 +83,8 @@ const RequirmentsForm = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    // Inside RequirmentsForm component (bottom part)
-    const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
-
     const handleSubmit = async () => {
         if (!user || user.role === "marketing") return;
-
         setErrorMessage(null);
         setSuccessMessage(null);
 
@@ -95,21 +98,32 @@ const RequirmentsForm = () => {
         if (!Array.isArray(special_notes) || special_notes.length === 0)
             return setErrorMessage("Please add at least one special note.");
 
+        let uploadedVoiceURL = "";
+
         try {
+            if (voiceBlob && user) {
+                setUploading(true);
+                const fileName = `recordings/${user.user_id}-${Date.now()}.webm`;
+                const fileRef = ref(storage, fileName);
+                await uploadBytes(fileRef, voiceBlob);
+                uploadedVoiceURL = await getDownloadURL(fileRef);
+                setVoiceUrl(uploadedVoiceURL);
+                setUploading(false);
+            }
+
             const submission = {
                 requirment_id: "",
                 user_id: user.user_id,
                 code: generateCode(),
                 lead_person: user.username,
                 plot_ownership: selectedPlot,
-                voice_recording: voiceUrl || "",
+                voice_recording: uploadedVoiceURL || "",
                 ...formData,
                 createdAt: serverTimestamp(),
             };
 
             await addDoc(collection(db, "submissions"), submission);
             setSuccessMessage("Submitted successfully!");
-            setErrorMessage(null);
             setFormData({
                 client_name: "",
                 special_notes: [],
@@ -127,13 +141,14 @@ const RequirmentsForm = () => {
                 remarks: "",
             });
             setSelectedPlot(null);
+            setVoiceBlob(null);
             setVoiceUrl(null);
         } catch (err) {
             console.error("Error saving submission:", err);
             setErrorMessage("Error saving submission. Please try again.");
+            setUploading(false);
         }
     };
-
 
     // const handleSubmit = async () => {
     //     if (!user || user.role === "marketing") return;
@@ -143,26 +158,13 @@ const RequirmentsForm = () => {
 
     //     const { client_name, special_notes, scope, phone_1, message_number } = formData;
 
-
-    //     if (!client_name.trim()) {
-    //         setErrorMessage("Please enter the client name.");
-    //         return;
-    //     }
-
-    //     if (!Array.isArray(scope) || scope.length === 0) {
-    //         setErrorMessage("Please select at least one scope.");
-    //         return;
-    //     }
-
-    //     if (!phone_1.trim() && !message_number.trim()) {
-    //         setErrorMessage("Please enter at least one contact number.");
-    //         return;
-    //     }
-
-    //     if (!Array.isArray(special_notes) || special_notes.length === 0) {
-    //         setErrorMessage("Please add at least one special note.");
-    //         return;
-    //     }
+    //     if (!client_name.trim()) return setErrorMessage("Please enter the client name.");
+    //     if (!Array.isArray(scope) || scope.length === 0)
+    //         return setErrorMessage("Please select at least one scope.");
+    //     if (!phone_1.trim() && !message_number.trim())
+    //         return setErrorMessage("Please enter at least one contact number.");
+    //     if (!Array.isArray(special_notes) || special_notes.length === 0)
+    //         return setErrorMessage("Please add at least one special note.");
 
     //     try {
     //         const submission = {
@@ -171,16 +173,14 @@ const RequirmentsForm = () => {
     //             code: generateCode(),
     //             lead_person: user.username,
     //             plot_ownership: selectedPlot,
+    //             voice_recording: voiceUrl || "",
     //             ...formData,
     //             createdAt: serverTimestamp(),
     //         };
 
     //         await addDoc(collection(db, "submissions"), submission);
-
     //         setSuccessMessage("Submitted successfully!");
     //         setErrorMessage(null);
-
-    //         // Reset form
     //         setFormData({
     //             client_name: "",
     //             special_notes: [],
@@ -198,6 +198,7 @@ const RequirmentsForm = () => {
     //             remarks: "",
     //         });
     //         setSelectedPlot(null);
+    //         setVoiceUrl(null);
     //     } catch (err) {
     //         console.error("Error saving submission:", err);
     //         setErrorMessage("Error saving submission. Please try again.");
@@ -216,7 +217,6 @@ const RequirmentsForm = () => {
 
     return (
         <div className="requirments_form" >
-            {/* <VoiceRecorder /> */}
 
             {/* Name of the client */}
             <div className="field">
@@ -437,7 +437,8 @@ const RequirmentsForm = () => {
                 />
             </div>
 
-            <VoiceRecorder onUploadComplete={(url) => setVoiceUrl(url)} />
+            <VoiceRecorder onRecordingComplete={(blob) => setVoiceBlob(blob)} />
+            {/* <VoiceRecorder onUploadComplete={(url) => setVoiceUrl(url)} /> */}
 
             {errorMessage && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md mb-4">

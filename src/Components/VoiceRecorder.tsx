@@ -1,24 +1,15 @@
 // src/Components/VoiceRecorder.tsx
 import React, { useState, useRef } from "react";
 import { Mic, Square } from "lucide-react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../firebase";
-import { useUser } from "../context/UserContext";
 
 interface VoiceRecorderProps {
-    onUploadComplete?: (url: string) => void;
+    onRecordingComplete?: (blob: Blob) => void;
 }
 
-const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onUploadComplete }) => {
-    const { user } = useUser();
+const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete }) => {
     const [isRecording, setIsRecording] = useState(false);
-    const [audioURL, setAudioURL] = useState<string | null>(null);
-    const [uploading, setUploading] = useState(false);
     const [status, setStatus] = useState<string | null>(null);
-    const [downloadURL, setDownloadURL] = useState<string | null>(null);
-
-    console.log(audioURL);
-
+    const [audioURL, setAudioURL] = useState<string | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunks = useRef<Blob[]>([]);
 
@@ -37,36 +28,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onUploadComplete }) => {
                 const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
                 const localUrl = URL.createObjectURL(audioBlob);
                 setAudioURL(localUrl);
-
-                if (!user) {
-                    setStatus("User not logged in.");
-                    return;
-                }
-
-                setUploading(true);
-                setStatus("Uploading to Firebase...");
-
-                try {
-                    // clean filename (avoid special chars)
-                    const fileName = `recordings/${user.user_id}-${Date.now()}.webm`;
-                    const fileRef = ref(storage, fileName);
-
-                    // Upload file directly using Firebase SDK (CORS-safe)
-                    await uploadBytes(fileRef, audioBlob);
-
-                    // Get downloadable URL
-                    const url = await getDownloadURL(fileRef);
-                    setDownloadURL(url);
-                    setStatus("Uploaded successfully!");
-
-                    // Pass URL to parent
-                    onUploadComplete?.(url);
-                } catch (error: any) {
-                    console.error("Upload failed:", error);
-                    setStatus("Upload failed. Please try again.");
-                } finally {
-                    setUploading(false);
-                }
+                setStatus("Recording complete");
+                onRecordingComplete?.(audioBlob);
             };
 
             mediaRecorder.start();
@@ -89,11 +52,8 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onUploadComplete }) => {
         <div className="flex flex-col items-center gap-3 rounded-lg mb-4 w-fit">
             <button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
-                disabled={uploading}
-                className={`p-4 rounded-full text-white transition ${isRecording
-                    ? "bg-red-600 animate-pulse"
-                    : "bg-[#0c555e] hover:bg-[#11717b]"
-                    } ${uploading ? "opacity-60 cursor-not-allowed" : ""}`}
+                className={`p-4 rounded-full text-white transition ${isRecording ? "bg-red-600 animate-pulse" : "bg-[#0c555e] hover:bg-[#11717b]"
+                    }`}
                 title={isRecording ? "Stop Recording" : "Start Recording"}
             >
                 {isRecording ? <Square size={22} /> : <Mic size={22} />}
@@ -101,16 +61,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onUploadComplete }) => {
 
             {status && (
                 <p
-                    className={`text-sm ${status.includes("failed") ? "text-red-500" : "text-gray-700"
+                    className={`text-sm ${status.includes("denied") ? "text-red-500" : "text-gray-700"
                         }`}
                 >
                     {status}
                 </p>
             )}
 
-            {downloadURL && (
-                <audio controls src={downloadURL} className="mt-2 w-full" />
-            )}
+            {audioURL && <audio controls src={audioURL} className="mt-2 w-full" />}
         </div>
     );
 };
@@ -137,7 +95,7 @@ export default VoiceRecorder;
 //     const [status, setStatus] = useState<string | null>(null);
 //     const [downloadURL, setDownloadURL] = useState<string | null>(null);
 
-//     console.log(downloadURL, status, audioURL)
+//     console.log(audioURL);
 
 //     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 //     const audioChunks = useRef<Blob[]>([]);
@@ -158,24 +116,32 @@ export default VoiceRecorder;
 //                 const localUrl = URL.createObjectURL(audioBlob);
 //                 setAudioURL(localUrl);
 
-//                 if (!user) return;
+//                 if (!user) {
+//                     setStatus("User not logged in.");
+//                     return;
+//                 }
 
 //                 setUploading(true);
 //                 setStatus("Uploading to Firebase...");
 
 //                 try {
-//                     const fileRef = ref(storage, `recordings/${user.user_id}-${Date.now()}.webm`);
-//                     await uploadBytes(fileRef, audioBlob);
-//                     const url = await getDownloadURL(fileRef);
+//                     // clean filename (avoid special chars)
+//                     const fileName = `recordings/${user.user_id}-${Date.now()}.webm`;
+//                     const fileRef = ref(storage, fileName);
 
+//                     // Upload file directly using Firebase SDK (CORS-safe)
+//                     await uploadBytes(fileRef, audioBlob);
+
+//                     // Get downloadable URL
+//                     const url = await getDownloadURL(fileRef);
 //                     setDownloadURL(url);
 //                     setStatus("Uploaded successfully!");
 
-//                     // Send URL to parent form
-//                     if (onUploadComplete) onUploadComplete(url);
-//                 } catch (error) {
+//                     // Pass URL to parent
+//                     onUploadComplete?.(url);
+//                 } catch (error: any) {
 //                     console.error("Upload failed:", error);
-//                     setStatus("Upload failed. Try again.");
+//                     setStatus("Upload failed. Please try again.");
 //                 } finally {
 //                     setUploading(false);
 //                 }
@@ -198,7 +164,7 @@ export default VoiceRecorder;
 //     };
 
 //     return (
-//         <div className="flex flex-col items-center gap-4 rounded-lg mb-4 w-fit">
+//         <div className="flex flex-col items-center gap-3 rounded-lg mb-4 w-fit">
 //             <button
 //                 onClick={isRecording ? handleStopRecording : handleStartRecording}
 //                 disabled={uploading}
@@ -210,6 +176,19 @@ export default VoiceRecorder;
 //             >
 //                 {isRecording ? <Square size={22} /> : <Mic size={22} />}
 //             </button>
+
+//             {status && (
+//                 <p
+//                     className={`text-sm ${status.includes("failed") ? "text-red-500" : "text-gray-700"
+//                         }`}
+//                 >
+//                     {status}
+//                 </p>
+//             )}
+
+//             {downloadURL && (
+//                 <audio controls src={downloadURL} className="mt-2 w-full" />
+//             )}
 //         </div>
 //     );
 // };
