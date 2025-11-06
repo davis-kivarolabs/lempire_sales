@@ -24,7 +24,7 @@ export default function Register() {
 
         // Simple validation
         if (!username.trim()) return setError("Username is required.");
-        if (!isValidEmail(email)) return setError("Enter a valid email.");
+        // if (!isValidEmail(email)) return setError("Enter a valid email.");
         if (!isStrongPassword(pw)) return setError("Password must be at least 8 chars, with uppercase and numbers.");
         if (pw !== pw2) return setError("Passwords do not match.");
         if (phone && !isValidPhone(phone)) return setError("Enter a valid phone number.");

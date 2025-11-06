@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "vanitha-veed",
+    "staging": "vanitha-veed"
+  },
+  "targets": {},
+  "etags": {}
+}

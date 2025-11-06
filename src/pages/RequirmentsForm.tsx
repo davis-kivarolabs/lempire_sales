@@ -27,12 +27,13 @@ const RequirmentsForm = () => {
     const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
     const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [submitLoading, setSubmitLoading] = useState(false);
 
-    console.log(voiceUrl, uploading)
+    console.log(voiceUrl)
 
     const [formData, setFormData] = useState({
         client_name: "",
-        scope: [] as string[],
+        scope: "",
         starting_time: "",
         phone_1: "",
         phone_2: "",
@@ -84,14 +85,15 @@ const RequirmentsForm = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const handleSubmit = async () => {
-        if (!user || user.role === "marketing") return;
+        if (!user || user.role === "marketing" || uploading || submitLoading) return;
         setErrorMessage(null);
         setSuccessMessage(null);
 
         const { client_name, special_notes, scope, phone_1, message_number } = formData;
 
         if (!client_name.trim()) return setErrorMessage("Please enter the client name.");
-        if (!Array.isArray(scope) || scope.length === 0)
+        if (!scope.trim())
+            // if (!Array.isArray(scope) || scope.length === 0)
             return setErrorMessage("Please select at least one scope.");
         if (!phone_1.trim() && !message_number.trim())
             return setErrorMessage("Please enter at least one contact number.");
@@ -100,6 +102,7 @@ const RequirmentsForm = () => {
 
         let uploadedVoiceURL = "";
 
+        setSubmitLoading(true)
         try {
             if (voiceBlob && user) {
                 setUploading(true);
@@ -127,7 +130,7 @@ const RequirmentsForm = () => {
             setFormData({
                 client_name: "",
                 special_notes: [],
-                scope: [],
+                scope: "",
                 starting_time: "",
                 phone_1: "",
                 phone_2: "",
@@ -143,67 +146,14 @@ const RequirmentsForm = () => {
             setSelectedPlot(null);
             setVoiceBlob(null);
             setVoiceUrl(null);
+            setSubmitLoading(false)
         } catch (err) {
             console.error("Error saving submission:", err);
             setErrorMessage("Error saving submission. Please try again.");
             setUploading(false);
+            setSubmitLoading(false)
         }
     };
-
-    // const handleSubmit = async () => {
-    //     if (!user || user.role === "marketing") return;
-
-    //     setErrorMessage(null);
-    //     setSuccessMessage(null);
-
-    //     const { client_name, special_notes, scope, phone_1, message_number } = formData;
-
-    //     if (!client_name.trim()) return setErrorMessage("Please enter the client name.");
-    //     if (!Array.isArray(scope) || scope.length === 0)
-    //         return setErrorMessage("Please select at least one scope.");
-    //     if (!phone_1.trim() && !message_number.trim())
-    //         return setErrorMessage("Please enter at least one contact number.");
-    //     if (!Array.isArray(special_notes) || special_notes.length === 0)
-    //         return setErrorMessage("Please add at least one special note.");
-
-    //     try {
-    //         const submission = {
-    //             requirment_id: "",
-    //             user_id: user.user_id,
-    //             code: generateCode(),
-    //             lead_person: user.username,
-    //             plot_ownership: selectedPlot,
-    //             voice_recording: voiceUrl || "",
-    //             ...formData,
-    //             createdAt: serverTimestamp(),
-    //         };
-
-    //         await addDoc(collection(db, "submissions"), submission);
-    //         setSuccessMessage("Submitted successfully!");
-    //         setErrorMessage(null);
-    //         setFormData({
-    //             client_name: "",
-    //             special_notes: [],
-    //             scope: [],
-    //             starting_time: "",
-    //             phone_1: "",
-    //             phone_2: "",
-    //             message_number: "",
-    //             district: "",
-    //             location: "",
-    //             plot_size: [],
-    //             project_size: [],
-    //             rooms: [],
-    //             budget: "",
-    //             remarks: "",
-    //         });
-    //         setSelectedPlot(null);
-    //         setVoiceUrl(null);
-    //     } catch (err) {
-    //         console.error("Error saving submission:", err);
-    //         setErrorMessage("Error saving submission. Please try again.");
-    //     }
-    // };
 
     useEffect(() => {
         if (successMessage) {
@@ -235,9 +185,10 @@ const RequirmentsForm = () => {
                 <CreatableSelect
                     classNamePrefix="mySelect"
 
-                    isMulti
+                    // isMulti
                     options={scopeOptions}
-                    onChange={(val) => handleSelectChange("scope", val)}
+                    value={scopeOptions.find((opt) => opt.value === formData.scope) || null}
+                    onChange={(val) => handleInputChange("scope", (val as any)?.value || "")}
                 />
             </div>
 
@@ -248,9 +199,8 @@ const RequirmentsForm = () => {
                     classNamePrefix="mySelect"
 
                     options={startingTime}
-                    onChange={(val) =>
-                        handleInputChange("starting_time", (val as any)?.value || "")
-                    }
+                    value={startingTime.find((opt) => opt.value === formData.starting_time) || null}
+                    onChange={(val) => handleInputChange("starting_time", (val as any)?.value || "")}
                 />
             </div>
 
@@ -375,6 +325,7 @@ const RequirmentsForm = () => {
 
                     isMulti
                     options={plotSize}
+                    value={formData.plot_size.map((r) => ({ label: r, value: r }))}
                     onChange={(val) => handleSelectChange("plot_size", val)}
                 />
             </div>
@@ -387,6 +338,7 @@ const RequirmentsForm = () => {
 
                     isMulti
                     options={projectSize}
+                    value={formData.project_size.map((r) => ({ label: r, value: r }))}
                     onChange={(val) => handleSelectChange("project_size", val)}
                 />
             </div>
@@ -399,6 +351,7 @@ const RequirmentsForm = () => {
 
                     isMulti
                     options={rooms}
+                    value={formData.rooms.map((r) => ({ label: r, value: r }))}
                     onChange={(val) => handleSelectChange("rooms", val)}
                 />
             </div>
@@ -433,6 +386,7 @@ const RequirmentsForm = () => {
 
                     isMulti
                     options={specialNotes}
+                    value={formData.special_notes.map((r) => ({ label: r, value: r }))}
                     onChange={(val) => handleSelectChange("special_notes", val)}
                 />
             </div>
@@ -452,8 +406,8 @@ const RequirmentsForm = () => {
                 </div>
             )}
 
-            <button onClick={handleSubmit} className={`btn ${user.role === "marketing" ? "disabled" : ""}`}>
-                Submit
+            <button onClick={handleSubmit} className={`btn ${(user.role === "marketing" || uploading || submitLoading) ? "disabled" : ""}`}>
+                {(uploading || submitLoading) ? "Submiting" : "Submit"}
             </button>
         </div>
     );

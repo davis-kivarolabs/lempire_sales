@@ -3,14 +3,17 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import sha256 from "crypto-js/sha256"; // ✅ for password hashing
+import sha256 from "crypto-js/sha256";
+import { useUser } from "../context/UserContext"; // ADD THIS
 
-export default function Login({ onLogin }: { onLogin?: () => void }) {
-    const [email, setEmail] = useState("");
+export default function Login() {
+    // const [phone, setPhone] = useState("");
+    const [loginId, setLoginId] = useState("");
     const [pw, setPw] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { setUser } = useUser(); // ADD THIS
 
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault();
@@ -18,35 +21,30 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
         setLoading(true);
 
         try {
-            // Hash password before comparing (same method as used on register)
             const hashedPw = sha256(pw).toString();
 
-            // Query Firestore for user with matching email and password
             const q = query(
                 collection(db, "users"),
-                where("email", "==", email),
+                where("login_id", "==", loginId),
                 where("password", "==", hashedPw)
             );
 
             const snapshot = await getDocs(q);
 
             if (snapshot.empty) {
-                setError("Invalid email or password.");
+                setError("Invalid phone or password.");
                 return;
             }
 
             const userData = snapshot.docs[0].data();
-            console.log("Logged in user:", userData);
 
-            // You could also store session locally
+            // Update context + localStorage
+            setUser(userData as any);
             localStorage.setItem("user", JSON.stringify(userData));
 
-            onLogin?.();
-
-            await new Promise(res => setTimeout(res, 200));
+            // Redirect
             navigate("/");
-        } catch (err: any) {
-            console.error(err);
+        } catch (err) {
             setError("Login failed. Please try again.");
         } finally {
             setLoading(false);
@@ -55,15 +53,18 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
 
     return (
         <div className="auth-card">
-            <h2>Welcome back</h2>
+            <h2 style={{ fontSize: "32px", fontWeight: 500, marginBottom: 20 }}>
+                Welcome back
+            </h2>
+
             <form onSubmit={handleLogin}>
                 <div className="field">
-                    <label className="label">Your Email</label>
+                    <label className="label">Your you code</label>
                     <input
                         className="input"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        type="text"
+                        value={loginId}
+                        onChange={(e) => setLoginId(e.target.value)}
                         required
                     />
                 </div>
@@ -85,9 +86,6 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
                     <button className="btn" type="submit" disabled={loading}>
                         {loading ? "Logging in..." : "Continue"}
                     </button>
-                    <a className="small-link" href="/forgot">
-                        Forgot password?
-                    </a>
                 </div>
             </form>
 
@@ -101,36 +99,56 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
     );
 }
 
-
 // // src/components/Login.tsx
 // import React, { useState } from "react";
-// import { signInWithEmailAndPassword, auth } from "../firebase";
-// import { useNavigate } from "react-router-dom"; // <-- import
+// import { useNavigate } from "react-router-dom";
+// import { db } from "../firebase";
+// import { collection, query, where, getDocs } from "firebase/firestore";
+// import sha256 from "crypto-js/sha256"; // for password hashing
 
 // export default function Login({ onLogin }: { onLogin?: () => void }) {
 //     const [email, setEmail] = useState("");
 //     const [pw, setPw] = useState("");
 //     const [error, setError] = useState<string | null>(null);
 //     const [loading, setLoading] = useState(false);
-
-//     const navigate = useNavigate(); // <-- initialize
+//     const navigate = useNavigate();
 
 //     async function handleLogin(e: React.FormEvent) {
 //         e.preventDefault();
 //         setError(null);
 //         setLoading(true);
+
 //         try {
-//             const cred = await signInWithEmailAndPassword(auth, email, pw);
-//             if (!cred.user.emailVerified) {
-//                 setError("Please verify your email before logging in. Check your inbox.");
-//             } else {
-//                 onLogin?.();
-//                 navigate("/"); // <-- redirect to home page
+//             // Hash password before comparing (same method as used on register)
+//             const hashedPw = sha256(pw).toString();
+
+//             // Query Firestore for user with matching email and password
+//             const q = query(
+//                 collection(db, "users"),
+//                 where("email", "==", email),
+//                 where("password", "==", hashedPw)
+//             );
+
+//             const snapshot = await getDocs(q);
+
+//             if (snapshot.empty) {
+//                 setError("Invalid email or password.");
+//                 return;
 //             }
+
+//             const userData = snapshot.docs[0].data();
+//             console.log("Logged in user:", userData);
+
+//             // You could also store session locally
+//             localStorage.setItem("user", JSON.stringify(userData));
+
+//             onLogin?.();
+
+//             await new Promise(res => setTimeout(res, 200));
+//             await navigate("/");
 //         } catch (err: any) {
-//             console.log(err)
-//             setError("Login failed.");
-//             // setError(err.message || "Login failed.");
+//             console.error(err);
+//             setError("Login failed. Please try again.");
 //         } finally {
 //             setLoading(false);
 //         }
@@ -142,22 +160,44 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
 //             <form onSubmit={handleLogin}>
 //                 <div className="field">
 //                     <label className="label">Your Email</label>
-//                     <input className="input" value={email} onChange={e => setEmail(e.target.value)} />
+//                     <input
+//                         className="input"
+//                         type="email"
+//                         value={email}
+//                         onChange={(e) => setEmail(e.target.value)}
+//                         required
+//                     />
 //                 </div>
 
 //                 <div className="field">
 //                     <label className="label">Password</label>
-//                     <input type="password" className="input" value={pw} onChange={e => setPw(e.target.value)} />
+//                     <input
+//                         type="password"
+//                         className="input"
+//                         value={pw}
+//                         onChange={(e) => setPw(e.target.value)}
+//                         required
+//                     />
 //                 </div>
 
 //                 {error && <div className="error">{error}</div>}
 
 //                 <div className="actions">
-//                     <button className="btn" type="submit" disabled={loading}>{loading ? "Logging..." : "Continue"}</button>
-//                     <a className="small-link" href="/forgot">Forgot password?</a>
+//                     <button className="btn" type="submit" disabled={loading}>
+//                         {loading ? "Logging in..." : "Continue"}
+//                     </button>
+//                     <a className="small-link" href="/forgot">
+//                         Forgot password?
+//                     </a>
 //                 </div>
 //             </form>
-//             <div style={{ marginTop: 12 }}>Don't have an account? <a href="/register" className="small-link">Sign up</a></div>
+
+//             <div style={{ marginTop: 12 }}>
+//                 Don’t have an account?{" "}
+//                 <a href="/register" className="small-link">
+//                     Sign up
+//                 </a>
+//             </div>
 //         </div>
 //     );
 // }
