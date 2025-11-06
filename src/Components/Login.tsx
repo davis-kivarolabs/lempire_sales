@@ -89,12 +89,12 @@ export default function Login() {
                 </div>
             </form>
 
-            <div style={{ marginTop: 12 }}>
+            {/* <div style={{ marginTop: 12 }}>
                 Don’t have an account?{" "}
                 <a href="/register" className="small-link">
                     Sign up
                 </a>
-            </div>
+            </div> */}
         </div>
     );
 }

@@ -76,7 +76,7 @@ const Header = () => {
                             </svg>
                             <p className="text-white" >Logout</p>
                         </div>
-                        {user?.role === "admin" && <div onClick={() => {
+                        {(user?.role === "admin" || user?.role === "marketing") && <div onClick={() => {
                             navigate("/register")
                             setIsMenu(false);
                         }} className="menu_button" >
