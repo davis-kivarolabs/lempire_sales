@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { saveUserProfile } from "../firebase";
-import { isValidEmail, isStrongPassword, isValidPhone } from "../utils/validators";
+import { isStrongPassword } from "../utils/validators";
 import sha256 from "crypto-js/sha256";
 
 export default function Register() {
@@ -27,7 +27,7 @@ export default function Register() {
         // if (!isValidEmail(email)) return setError("Enter a valid email.");
         if (!isStrongPassword(pw)) return setError("Password must be at least 8 chars, with uppercase and numbers.");
         if (pw !== pw2) return setError("Passwords do not match.");
-        if (phone && !isValidPhone(phone)) return setError("Enter a valid phone number.");
+        // if (phone && !isValidPhone(phone)) return setError("Enter a valid phone number.");
 
         setLoading(true);
         try {
@@ -70,14 +70,14 @@ export default function Register() {
                     <div className="helper">At least 3 characters</div>
                 </div>
 
-                <div className="field">
+                {/* <div className="field">
                     <label className="label">Your Email</label>
                     <input
                         className={`input ${email && !isValidEmail(email) ? "invalid" : ""}`}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                     />
-                </div>
+                </div> */}
 
                 <div className="field">
                     <label className="label">Password</label>
@@ -100,7 +100,7 @@ export default function Register() {
                     />
                 </div>
 
-                <div className="field">
+                {/* <div className="field">
                     <label className="label">Phone (optional)</label>
                     <input
                         value={phone}
@@ -108,7 +108,7 @@ export default function Register() {
                         className={`input ${phone && !isValidPhone(phone) ? "invalid" : ""}`}
                         placeholder="e.g. 971501234567"
                     />
-                </div>
+                </div> */}
 
                 {error && <div className="error">{error}</div>}
                 {success && <div className="success">User saved successfully!</div>}

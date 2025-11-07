@@ -25,13 +25,21 @@ export const colourOptions: readonly DataTypes[] = [
 ];
 
 export const scopeOptions: readonly DataTypes[] = [
-  { value: "To Design", label: "To Design" },
-  { value: "Design Completed", label: "Design Completed" },
-  { value: "Construction", label: "Construction" },
+  { value: "Home construction", label: "Home construction" },
   { value: "Interior", label: "Interior" },
+  { value: "Renovation", label: "Renovation" },
+  { value: "Designing", label: "Designing" },
   { value: "Landscaping", label: "Landscaping" },
-  { value: "Just Inquiry", label: "Just Inquiry" },
-  { value: "Dealer/Suppliers", label: "Dealer/Suppliers" },
+  { value: "Just enquiry", label: "Just enquiry" },
+  { value: "Dealers", label: "Dealers" },
+
+  // { value: "To Design", label: "To Design" },
+  // { value: "Design Completed", label: "Design Completed" },
+  // { value: "Construction", label: "Construction" },
+  // { value: "Interior", label: "Interior" },
+  // { value: "Landscaping", label: "Landscaping" },
+  // { value: "Just Inquiry", label: "Just Inquiry" },
+  // { value: "Dealer/Suppliers", label: "Dealer/Suppliers" },
 ];
 
 export const startingTime: readonly DataTypes[] = [
