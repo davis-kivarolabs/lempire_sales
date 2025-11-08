@@ -189,7 +189,6 @@ const Submissions = () => {
         setCurrentPage(1);
     }, [searchTerm]);
 
-
     if (!user) return <p className="text-center mt-10 text-gray-500">Loading user...</p>;
     if (loading) return <p className="text-center mt-10 text-gray-500">Loading submissions...</p>;
 
@@ -259,7 +258,8 @@ const Submissions = () => {
                         <tbody>
                             {/* {currentData?.map((sub, i) => ( */}
                             {[...currentData]
-                                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                .sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis()) // oldest first
+                                .reverse() // newest first
                                 .map((sub, i) => (
                                     <tr
                                         key={sub.id}
