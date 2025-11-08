@@ -4,6 +4,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import * as XLSX from "xlsx";
 import { useUser } from "../context/UserContext";
 import { Download, Search } from "lucide-react";
+import axios from "axios";
 
 interface Submission {
     id: string;
@@ -115,40 +116,49 @@ const Submissions = () => {
     //     window.open(whatsappLink, "_blank");
     // };
 
-    const handleSendMessage = (clientName: string, scope: string, messageNumber: string) => {
+    const handleSendMessageNoTemplate = (clientName: string, scope: string, messageNumber: string) => {
         let message = "";
 
         const lowerScope = scope.toLowerCase(); // normalize
 
         if (lowerScope === "just enquiry" || lowerScope === "dealers") {
             message = `Hi ${clientName},
-Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
+    Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
 
-It was a pleasure connecting with you. We appreciate your time and interest in Lempire Builders.
+    It was a pleasure connecting with you. We appreciate your time and interest in Lempire Builders.
 
-Warm regards,
-L’empire Builders
-+91 97784 11620
-+91 97784 11609`;
+    Warm regards,
+    L’empire Builders
+    +91 97784 11620
+    +91 97784 11609`;
         } else {
             message = `Hi ${clientName},
-Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
+    Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
 
-We're really glad to have hosted you and appreciate your interest in our work.
+    We're really glad to have hosted you and appreciate your interest in our work.
 
-We've noted your requirement regarding ${scope} and our technical team will be connecting with you shortly to discuss your project in detail.
+    We've noted your requirement regarding ${scope} and our technical team will be connecting with you shortly to discuss your project in detail.
 
-Warm regards,
-L’empire Builders
-+91 97784 11620
-+91 97784 11609`;
+    Warm regards,
+    L’empire Builders
+    +91 97784 11620
+    +91 97784 11609`;
         }
 
         const whatsappLink = `https://wa.me/${messageNumber}?text=${encodeURIComponent(message)}`;
         window.open(whatsappLink, "_blank");
     };
 
-
+    const [sendLoading, setSendLoading] = useState("")
+    const handleSendMessage = async (docId: string) => {
+        setSendLoading(docId)
+        await axios.post(
+            "https://asia-south1-vanitha-veed.cloudfunctions.net/sendWhatsAppMessage",
+            { docId }
+        );
+        alert("WhatsApp message sent manually");
+        setSendLoading("")
+    };
 
     const filteredSubmissions = submissions.filter((sub) => {
         const term = searchTerm.toLowerCase();
@@ -158,7 +168,8 @@ L’empire Builders
             sub.code?.toLowerCase().includes(term) ||
             sub.district?.toLowerCase().includes(term) ||
             sub.phone_1?.includes(term) ||
-            sub.phone_2?.includes(term)
+            sub.phone_2?.includes(term) ||
+            sub.scope?.toLowerCase().includes(term)
         );
     });
 
@@ -242,70 +253,81 @@ L’empire Builders
                             </tr>
                         </thead>
                         <tbody>
-                            {currentData?.map((sub, i) => (
-                                <tr
-                                    key={sub.id}
-                                    className="border-b hover:bg-gray-50 transition-all text-sm even:bg-gray-50"
-                                >
-                                    <td className="px-4 py-2">{i + 1}</td>
-                                    <td className="px-4 py-2 text-start text-nowrap">
-                                        {!sub.message_number ? <>
-                                            <span className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm">
-                                                Nill
-                                            </span>
-                                        </> :
-                                            <>
-                                                {sub.whatsapp_sent ? (
-                                                    <div title={`Delivered message to ${sub.message_number}`} >
-                                                        {/* <div title={`Delivered message to ${sub.message_number} on ${sub.whatsapp_sent_at.toDate().toLocaleString()}`} > */}
+                            {/* {currentData?.map((sub, i) => ( */}
+                            {[...currentData]
+                                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                .map((sub, i) => (
+                                    <tr
+                                        key={sub.id}
+                                        className="border-b hover:bg-gray-50 transition-all text-sm even:bg-gray-50"
+                                    >
+                                        <td className="px-4 py-2">{i + 1}</td>
+                                        <td className="px-4 py-2 text-start text-nowrap">
+                                            {!sub.message_number ? <>
+                                                <span className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm">
+                                                    Nill
+                                                </span>
+                                            </> :
+                                                <>
+                                                    {sub.whatsapp_sent ? (
+                                                        <div title={`Delivered message to ${sub.message_number}`} >
+                                                            {/* <div title={`Delivered message to ${sub.message_number} on ${sub.whatsapp_sent_at.toDate().toLocaleString()}`} > */}
 
-                                                        <span
-                                                            // className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs"
-                                                            className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm"
-                                                        >
-                                                            Delivered
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <div title={`Sent message to ${sub.message_number}`} >
-                                                        <button
-                                                            onClick={() =>
-                                                                handleSendMessage(sub.client_name, sub.scope, sub.message_number)
+                                                            <span
+                                                                // className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs"
+                                                                className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm"
+                                                            >
+                                                                Delivered
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div title={`Sent message to ${sub.message_number}`} >
+                                                            {
+                                                                sendLoading === sub.id ?
+                                                                    <button className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm">
+                                                                        Sending
+                                                                    </button> :
+                                                                    <button onClick={() => {
+                                                                        if (sub.scope === "Just enguiry" || sub.scope === "Dealers") {
+                                                                            handleSendMessageNoTemplate(sub.client_name, sub.scope, sub.message_number);
+                                                                        } else {
+                                                                            handleSendMessage(sub.id);
+                                                                        }
+                                                                    }}
+                                                                        className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm">
+                                                                        Send
+                                                                    </button>
                                                             }
-                                                            className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm"
-                                                        >
-                                                            Send
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </>}
-                                    </td>
-                                    <td className="px-4 py-2">{sub.code}</td>
-                                    <td className="px-4 py-2">{sub.lead_person}</td>
-                                    <td className="px-4 py-2">
-                                        {sub?.createdAt?.toDate().toLocaleString().split(",")[0]}
-                                    </td>
-                                    <td className="px-4 py-2">
-                                        {sub?.createdAt?.toDate().toLocaleString().split(",")[1]}
-                                    </td>
-                                    <td className="px-4 py-2 font-medium text-gray-800">{sub?.client_name}</td>
-                                    <td className="px-4 py-2">{sub?.scope}</td>
-                                    {/* <td className="px-4 py-2">{sub?.scope?.join(", ")}</td> */}
-                                    <td className="px-4 py-2">{sub?.starting_time}</td>
-                                    <td className="px-4 py-2">{[sub?.phone_1, sub?.phone_2]?.filter(Boolean)?.join(",")}</td>
-                                    <td className="px-4 py-2">{sub?.district}</td>
-                                    <td className="px-4 py-2">{sub?.location}</td>
-                                    <td className="px-4 py-2">{sub?.plot_size?.join(", ")}</td>
-                                    <td className="px-4 py-2">{sub?.project_size?.join(", ")}</td>
-                                    <td className="px-4 py-2" style={{ minWidth: "250px" }} >{sub?.remarks}</td>
-                                    <td className="px-4 py-2">{sub?.rooms?.join(", ")}</td>
-                                    <td className="px-4 py-2">{sub?.budget}</td>
-                                    <td className="px-4 py-2">{sub?.special_notes?.join(", ")}</td>
-                                    <td className="px-4 py-2">{sub?.voice_recording ? <audio controls src={sub?.voice_recording} className="mt-2 w-full" /> : <span className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs">
-                                        No Voices
-                                    </span>}</td>
-                                </tr>
-                            ))}
+                                                        </div>
+                                                    )}
+                                                </>}
+                                        </td>
+                                        <td className="px-4 py-2">{sub.code}</td>
+                                        <td className="px-4 py-2">{sub.lead_person}</td>
+                                        <td className="px-4 py-2">
+                                            {sub?.createdAt?.toDate().toLocaleString().split(",")[0]}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {sub?.createdAt?.toDate().toLocaleString().split(",")[1]}
+                                        </td>
+                                        <td className="px-4 py-2 font-medium text-gray-800">{sub?.client_name}</td>
+                                        <td className="px-4 py-2">{sub?.scope}</td>
+                                        {/* <td className="px-4 py-2">{sub?.scope?.join(", ")}</td> */}
+                                        <td className="px-4 py-2">{sub?.starting_time}</td>
+                                        <td className="px-4 py-2">{[sub?.phone_1, sub?.phone_2]?.filter(Boolean)?.join(",")}</td>
+                                        <td className="px-4 py-2">{sub?.district}</td>
+                                        <td className="px-4 py-2">{sub?.location}</td>
+                                        <td className="px-4 py-2">{sub?.plot_size?.join(", ")}</td>
+                                        <td className="px-4 py-2">{sub?.project_size?.join(", ")}</td>
+                                        <td className="px-4 py-2" style={{ minWidth: "250px" }} >{sub?.remarks}</td>
+                                        <td className="px-4 py-2">{sub?.rooms?.join(", ")}</td>
+                                        <td className="px-4 py-2">{sub?.budget}</td>
+                                        <td className="px-4 py-2">{sub?.special_notes?.join(", ")}</td>
+                                        <td className="px-4 py-2">{sub?.voice_recording ? <audio controls src={sub?.voice_recording} className="mt-2 w-full" /> : <span className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs">
+                                            No Voices
+                                        </span>}</td>
+                                    </tr>
+                                ))}
                         </tbody>
                     </table>
                     <div className="flex justify-end items-center gap-3 mt-4 mb-4">
