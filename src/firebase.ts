@@ -24,6 +24,7 @@ export async function saveUserProfile(profile: {
   email: string;
   phone?: string;
   password: string;
+  login_id: string;
   status: string;
   role: "admin" | "sales" | "marketing";
 }) {

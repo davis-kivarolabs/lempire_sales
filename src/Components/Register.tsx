@@ -36,8 +36,9 @@ export default function Register() {
                 user_id: userId,
                 username,
                 email,
-                phone: phone || undefined,
+                phone: phone,
                 password: hashedPw,
+                login_id: username,
                 status: "activated",
                 role: "sales",
             });
