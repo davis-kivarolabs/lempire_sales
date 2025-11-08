@@ -117,6 +117,8 @@ const Submissions = () => {
     // };
 
     const handleSendMessageNoTemplate = (clientName: string, scope: string, messageNumber: string) => {
+        if (user?.role !== "marketing") return
+
         let message = "";
 
         const lowerScope = scope.toLowerCase(); // normalize
@@ -151,6 +153,7 @@ const Submissions = () => {
 
     const [sendLoading, setSendLoading] = useState("")
     const handleSendMessage = async (docId: string) => {
+        if (user?.role !== "marketing") return
         setSendLoading(docId)
         await axios.post(
             "https://asia-south1-vanitha-veed.cloudfunctions.net/sendWhatsAppMessage",
@@ -244,8 +247,9 @@ const Submissions = () => {
                                     "Rooms",
                                     "Budget",
                                     "Special Notes",
-                                    "voice_recording",
-                                ].map((head) => (
+                                    "Voice recording",
+                                    "Send manually"
+                                ].filter((item) => item !== "Send manually").map((head) => (
                                     <th key={head} className="px-4 py-3 border text-nowrap text-left font-medium">
                                         {head}
                                     </th>
@@ -326,6 +330,19 @@ const Submissions = () => {
                                         <td className="px-4 py-2">{sub?.voice_recording ? <audio controls src={sub?.voice_recording} className="mt-2 w-full" /> : <span className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs">
                                             No Voices
                                         </span>}</td>
+
+
+                                        {user?.role === "marketing" &&
+                                            <td className="px-4 py-2">
+
+                                                <button onClick={() => {
+                                                    handleSendMessageNoTemplate(sub.client_name, sub.scope, sub.message_number);
+                                                }}
+                                                    className="text-[#0c555e] cursor-pointer hover:text-[#11717b] transition-all font-semibold underline text-sm">
+                                                    Send
+                                                </button>
+                                            </td>
+                                        }
                                     </tr>
                                 ))}
                         </tbody>
@@ -375,7 +392,7 @@ const Submissions = () => {
                     </svg>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
