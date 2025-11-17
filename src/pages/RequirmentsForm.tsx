@@ -1,5 +1,5 @@
 // src/components/RequirmentsForm.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CreatableSelect from "react-select/creatable";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -17,7 +17,7 @@ import { useUser } from "../context/UserContext";
 import { db, storage } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import "./pages.scss";
-import VoiceRecorder from "../Components/VoiceRecorder";
+import VoiceRecorder, { type VoiceRecorderHandle } from "../Components/VoiceRecorder";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 // import VoiceRecorder from "../Components/VoiceRecorder";
 
@@ -84,10 +84,17 @@ const RequirmentsForm = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+
     const handleSubmit = async () => {
-        if (!user || user.role === "marketing" || uploading || submitLoading) return;
+        // if (!user || user.role === "marketing" || uploading || submitLoading) return;
+        if (!user || uploading || submitLoading) return;
         setErrorMessage(null);
         setSuccessMessage(null);
+
+        if (recorderRef.current) {
+            recorderRef.current.stopRecordingManually();
+        }
+
 
         const { client_name, special_notes, scope, phone_1, message_number } = formData;
 
@@ -162,6 +169,7 @@ const RequirmentsForm = () => {
         }
     }, [successMessage]);
 
+    const recorderRef = useRef<VoiceRecorderHandle | null>(null);
 
     if (!user) return <p>Loading user...</p>;
 
@@ -392,7 +400,11 @@ const RequirmentsForm = () => {
                     />
                 </div>
 
-                <VoiceRecorder onRecordingComplete={(blob) => setVoiceBlob(blob)} />
+                <VoiceRecorder
+                    ref={recorderRef}
+                    onRecordingComplete={(blob) => setVoiceBlob(blob)}
+                />
+                {/* <VoiceRecorder onRecordingComplete={(blob) => setVoiceBlob(blob)} /> */}
 
                 {errorMessage && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md mb-4">
@@ -406,7 +418,7 @@ const RequirmentsForm = () => {
                     </div>
                 )}
 
-                <button onClick={handleSubmit} className={`btn ${(user.role === "marketing" || uploading || submitLoading) ? "disabled" : ""}`}>
+                <button onClick={handleSubmit} className={`btn ${(uploading || submitLoading) ? "disabled" : ""}`}>
                     {(uploading || submitLoading) ? "Submiting" : "Submit"}
                 </button>
 
