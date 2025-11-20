@@ -25,6 +25,7 @@ interface Submission {
     rooms: string[];
     budget: string;
     code: string;
+    expo_location: string;
     remarks: string;
     special_notes: string[];
     createdAt: any;
@@ -44,6 +45,7 @@ const Submissions = () => {
 
     const [searchTerm, setSearchTerm] = useState("");
     const [leadFilter, setLeadFilter] = useState("all");
+    const [expoLocationsFilter, setExpoLocationsFilter] = useState("all");
 
     const [sortColumn, setSortColumn] = useState("createdAt");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -63,7 +65,7 @@ const Submissions = () => {
 
         try {
             let q;
-            if (user.role === "admin" || user.role === "marketing") {
+            if (user.role === "admin" || user.role === "marketing" || user.role === "sales") {
                 q = query(collection(db, "submissions"));
             } else {
                 q = query(collection(db, "submissions"), where("user_id", "==", user.user_id));
@@ -113,12 +115,16 @@ const Submissions = () => {
             data = data.filter((sub) => sub.lead_person === leadFilter);
         }
 
+        if (expoLocationsFilter !== "all") {
+            data = data.filter((sub) => sub.expo_location === expoLocationsFilter);
+        }
+
         if (searchTerm.trim() !== "") {
             data = data.filter((sub) => searchInSubmission(sub, searchTerm));
         }
 
         return data;
-    }, [submissions, leadFilter, searchTerm]);
+    }, [submissions, leadFilter, expoLocationsFilter, searchTerm]);
 
     // ------------------------------------------------
     // Sorting
@@ -254,6 +260,7 @@ L’empire Builders
 
     // Collect unique lead persons
     const uniqueLeads = [...new Set(submissions.map((s) => s.lead_person))];
+    const expoLocations = [...new Set(submissions.map((s) => s.expo_location))];
 
     return (
         <div className="py-6 mx-auto">
@@ -276,15 +283,21 @@ L’empire Builders
                     </div>
 
                     {/* Lead Filter Dropdown */}
-                    <select
-                        className="border px-3 py-2 rounded-md shadow-sm"
-                        value={leadFilter}
-                        onChange={(e) => setLeadFilter(e.target.value)}
-                    >
+                    <select className="border px-3 py-2 rounded-md shadow-sm" value={leadFilter} onChange={(e) => setLeadFilter(e.target.value)} >
                         <option value="all">All Leads</option>
                         {uniqueLeads.map((lead) => (
                             <option key={lead} value={lead}>
                                 {lead}
+                            </option>
+                        ))}
+                    </select>
+
+                    {/* Expo locations Filter Dropdown */}
+                    <select className="border px-3 py-2 rounded-md shadow-sm" value={expoLocationsFilter} onChange={(e) => setExpoLocationsFilter(e.target.value)}>
+                        <option value="all">All Expo</option>
+                        {expoLocations.map((expo) => (
+                            <option key={expo} value={expo}>
+                                {expo}
                             </option>
                         ))}
                     </select>
@@ -312,6 +325,7 @@ L’empire Builders
                                     { key: "sl", label: "SL No" },
                                     { key: "whatsapp_sent", label: "Send Message" },
                                     { key: "code", label: "Code" },
+                                    { key: "expo_location", label: "Expo Location" },
                                     { key: "lead_person", label: "Lead Person" },
                                     { key: "createdAt", label: "Date" },
                                     { key: "createdAt", label: "Time" },
@@ -370,6 +384,7 @@ L’empire Builders
                                         </td>
 
                                         <td className="px-4 py-2">{sub.code}</td>
+                                        <td className="px-4 py-2">{sub.expo_location}</td>
                                         <td className="px-4 py-2">{sub.lead_person}</td>
 
                                         <td className="px-4 py-2">

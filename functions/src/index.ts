@@ -15,8 +15,8 @@ const WHATSAPP_ACCESS_TOKEN = defineString("WHATSAPP_ACCESS_TOKEN");
 const PROJECT_ID = "vanitha-veed";
 const LOCATION = "asia-south1";
 const QUEUE = "whatsapp-delay-queue";
-const DELAY_SECONDS = 10; // 10 seconds
-// const DELAY_SECONDS = 4 * 60 * 60; // 4 hours
+// const DELAY_SECONDS = 10; // 10 seconds
+const DELAY_SECONDS = 4 * 60 * 60; // 4 hours
 const SEND_MESSAGE_URL = `https://${LOCATION}-${PROJECT_ID}.cloudfunctions.net/sendWhatsAppMessage`;
 
 const tasksClient = new CloudTasksClient();

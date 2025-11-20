@@ -46,6 +46,7 @@ const RequirmentsForm = () => {
         rooms: [] as string[],
         budget: "",
         remarks: "",
+        expo_location: "thiruvananthapuram",
         special_notes: [] as string[],
         // color: [] as string[],
     });
@@ -74,6 +75,45 @@ const RequirmentsForm = () => {
             }));
         }
     };
+
+
+
+    // const [expo, setExpo] = useState();
+    // const [loadingExpo, setLoadingExpo] = useState(false);
+    // console.log("expo: ", expo);
+
+    // const fetchSubmissions = async () => {
+    //     if (!user) return;
+
+    //     setLoadingExpo(true);
+
+    //     try {
+    //         const findExpo = query(collection(db, "expo_list"), where("isActive", "==", true));
+
+    //         const snapshot = await getDocs(findExpo);
+
+    //         const data = snapshot.docs.map((doc) => ({
+    //             id: doc.id,
+    //             ...doc.data(),
+    //         }));
+
+    //         setExpo(data);
+    //     } catch (error) {
+    //         console.error("Error fetching submissions:", error);
+    //     } finally {
+    //         setLoadingExpo(false);
+    //     }
+    // };
+
+    // useEffect(() => {
+    //     fetchSubmissions();
+    // }, [user]);
+
+    // const generateCode = () => {
+    //     const expoCode = expo.expo_code // 010001 || 050001 || 070001
+    //     const rand = Math.floor(10 + Math.random() * 90);
+    //     return date + rand;
+    // };
 
     const generateCode = () => {
         const date = new Date().getTime().toString().slice(-3);
@@ -149,6 +189,7 @@ const RequirmentsForm = () => {
                 rooms: [],
                 budget: "",
                 remarks: "",
+                expo_location: "",
             });
             setSelectedPlot(null);
             setVoiceBlob(null);
