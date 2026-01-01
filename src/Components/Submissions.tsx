@@ -386,7 +386,6 @@ L’empire Builders
                   { key: "manual_message", label: "Manual Message" },
                   { key: "sl", label: "SL No" },
                   { key: "scope", label: "Scope" },
-                  { key: "whatsapp_sent", label: "Send Message" },
                   { key: "code", label: "Code" },
                   { key: "expo_location", label: "Expo Location" },
                   { key: "lead_person", label: "Lead Person" },
@@ -404,6 +403,7 @@ L’empire Builders
                   { key: "budget", label: "Budget" },
                   { key: "special_notes", label: "Special Notes" },
                   { key: "voice_recording", label: "Voice Recording" },
+                  { key: "whatsapp_sent", label: "Send Message" },
                   ...(user?.role === "marketing"
                     ? [{ key: "send", label: "Send Manually" }]
                     : []),
@@ -453,19 +453,6 @@ L’empire Builders
                     <td className="px-4 py-2">{globalIndex}</td>
                     <td className="px-4 py-2">{sub.scope}</td>
 
-                    {/* Send Message Column */}
-                    <td className="px-4 py-2">
-                      {sub.whatsapp_sent ? (
-                        <span className="text-green-600 font-semibold">
-                          Delivered
-                        </span>
-                      ) : (
-                        <span className="text-red-600 font-semibold">
-                          Pending
-                        </span>
-                      )}
-                    </td>
-
                     <td className="px-4 py-2">{sub.code}</td>
                     <td className="px-4 py-2">{sub.expo_location}</td>
                     <td className="px-4 py-2">{sub.lead_person}</td>
@@ -511,7 +498,18 @@ L’empire Builders
                         </span>
                       )}
                     </td>
-
+                    {/* Send Message Column */}
+                    <td className="px-4 py-2">
+                      {sub.whatsapp_sent ? (
+                        <span className="text-green-600 font-semibold">
+                          Delivered
+                        </span>
+                      ) : (
+                        <span className="text-red-600 font-semibold">
+                          Pending
+                        </span>
+                      )}
+                    </td>
                     {/* Marketing Manual Send */}
                     {user?.role === "marketing" && (
                       <td className="px-4 py-2">
