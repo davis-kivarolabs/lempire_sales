@@ -10,210 +10,224 @@ import axios from "axios";
 // Types
 // --------------------------------------------
 interface Submission {
-    id: string;
-    client_name: string;
-    scope: string;
-    starting_time: string;
-    phone_1: string;
-    phone_2: string;
-    message_number: string;
-    district: string;
-    location: string;
-    plot_ownership: string;
-    plot_size: string[];
-    project_size: string[];
-    rooms: string[];
-    budget: string;
-    code: string;
-    expo_location: string;
-    remarks: string;
-    special_notes: string[];
-    createdAt: any;
-    lead_person: string;
-    requirment_id: string;
-    user_id: string[];
-    whatsapp_sent: boolean;
-    voice_recording: string;
-    whatsapp_sent_at: string;
+  id: string;
+  client_name: string;
+  scope: string;
+  starting_time: string;
+  phone_1: string;
+  phone_2: string;
+  message_number: string;
+  district: string;
+  location: string;
+  plot_ownership: string;
+  plot_size: string[];
+  project_size: string[];
+  rooms: string[];
+  budget: string;
+  code: string;
+  expo_location: string;
+  remarks: string;
+  special_notes: string[];
+  createdAt: any;
+  lead_person: string;
+  requirment_id: string;
+  user_id: string[];
+  whatsapp_sent: boolean;
+  voice_recording: string;
+  whatsapp_sent_at: string;
 }
 
 const Submissions = () => {
-    const { user } = useUser();
+  const { user } = useUser();
 
-    const [submissions, setSubmissions] = useState<Submission[]>([]);
-    const [loading, setLoading] = useState(true);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [leadFilter, setLeadFilter] = useState("all");
-    const [expoLocationsFilter, setExpoLocationsFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [leadFilter, setLeadFilter] = useState("all");
+  const [expoLocationsFilter, setExpoLocationsFilter] = useState("all");
 
-    const [sortColumn, setSortColumn] = useState("createdAt");
-    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [sortColumn, setSortColumn] = useState("createdAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-    const [sendLoading, setSendLoading] = useState("");
+  const [sendLoading, setSendLoading] = useState("");
 
-    const itemsPerPage = 10;
-    const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
 
-    // ------------------------------------------------
-    // Fetch Submissions
-    // ------------------------------------------------
-    const fetchSubmissions = async () => {
-        if (!user) return;
+  // ------------------------------------------------
+  // Fetch Submissions
+  // ------------------------------------------------
+  const fetchSubmissions = async () => {
+    if (!user) return;
 
-        setLoading(true);
+    setLoading(true);
 
-        try {
-            let q;
-            if (user.role === "admin" || user.role === "marketing" || user.role === "sales") {
-                q = query(collection(db, "submissions"));
-            } else {
-                q = query(collection(db, "submissions"), where("user_id", "==", user.user_id));
-            }
+    try {
+      let q;
+      if (
+        user.role === "admin" ||
+        user.role === "marketing" ||
+        user.role === "sales"
+      ) {
+        q = query(collection(db, "submissions"));
+      } else {
+        q = query(
+          collection(db, "submissions"),
+          where("user_id", "==", user.user_id)
+        );
+      }
 
-            const snapshot = await getDocs(q);
+      const snapshot = await getDocs(q);
 
-            const data: Submission[] = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            })) as Submission[];
+      const data: Submission[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Submission[];
 
-            setSubmissions(data);
-        } catch (error) {
-            console.error("Error fetching submissions:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+      setSubmissions(data);
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
-        fetchSubmissions();
-    }, [user]);
+  useEffect(() => {
+    fetchSubmissions();
+  }, [user]);
 
-    // ------------------------------------------------
-    // Universal Search Function
-    // ------------------------------------------------
-    const searchInSubmission = (sub: Submission, term: string) => {
-        const t = term.toLowerCase();
+  // ------------------------------------------------
+  // Universal Search Function
+  // ------------------------------------------------
+  const searchInSubmission = (sub: Submission, term: string) => {
+    const t = term.toLowerCase();
 
-        return Object.values(sub).some((val) => {
-            if (!val) return false;
-            if (Array.isArray(val)) return val.join(" ").toLowerCase().includes(t);
-            if (typeof val === "string") return val.toLowerCase().includes(t);
-            if (typeof val === "number") return val.toString().includes(t);
-            return false;
-        });
-    };
+    return Object.values(sub).some((val) => {
+      if (!val) return false;
+      if (Array.isArray(val)) return val.join(" ").toLowerCase().includes(t);
+      if (typeof val === "string") return val.toLowerCase().includes(t);
+      if (typeof val === "number") return val.toString().includes(t);
+      return false;
+    });
+  };
 
-    // ------------------------------------------------
-    // Apply Lead Filter + Search
-    // ------------------------------------------------
-    const filteredSubmissions = useMemo(() => {
-        let data = [...submissions];
+  // ------------------------------------------------
+  // Apply Lead Filter + Search
+  // ------------------------------------------------
+  const filteredSubmissions = useMemo(() => {
+    let data = [...submissions];
 
-        if (leadFilter !== "all") {
-            data = data.filter((sub) => sub.lead_person === leadFilter);
-        }
+    if (leadFilter !== "all") {
+      data = data.filter((sub) => sub.lead_person === leadFilter);
+    }
 
-        if (expoLocationsFilter !== "all") {
-            data = data.filter((sub) => sub.expo_location === expoLocationsFilter);
-        }
+    if (expoLocationsFilter !== "all") {
+      data = data.filter((sub) => sub.expo_location === expoLocationsFilter);
+    }
 
-        if (searchTerm.trim() !== "") {
-            data = data.filter((sub) => searchInSubmission(sub, searchTerm));
-        }
+    if (searchTerm.trim() !== "") {
+      data = data.filter((sub) => searchInSubmission(sub, searchTerm));
+    }
 
-        return data;
-    }, [submissions, leadFilter, expoLocationsFilter, searchTerm]);
+    return data;
+  }, [submissions, leadFilter, expoLocationsFilter, searchTerm]);
 
-    // ------------------------------------------------
-    // Sorting
-    // ------------------------------------------------
-    const sortedSubmissions = useMemo(() => {
-        return [...filteredSubmissions].sort((a, b) => {
-            let valA: any = a[sortColumn as keyof Submission];
-            let valB: any = b[sortColumn as keyof Submission];
+  // ------------------------------------------------
+  // Sorting
+  // ------------------------------------------------
+  const sortedSubmissions = useMemo(() => {
+    return [...filteredSubmissions].sort((a, b) => {
+      let valA: any = a[sortColumn as keyof Submission];
+      let valB: any = b[sortColumn as keyof Submission];
 
-            if (sortColumn === "createdAt") {
-                valA = a.createdAt?.toMillis?.() || 0;
-                valB = b.createdAt?.toMillis?.() || 0;
-            }
+      if (sortColumn === "createdAt") {
+        valA = a.createdAt?.toMillis?.() || 0;
+        valB = b.createdAt?.toMillis?.() || 0;
+      }
 
-            if (typeof valA === "string") valA = valA.toLowerCase();
-            if (typeof valB === "string") valB = valB.toLowerCase();
+      if (typeof valA === "string") valA = valA.toLowerCase();
+      if (typeof valB === "string") valB = valB.toLowerCase();
 
-            if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-            if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-            return 0;
-        });
-    }, [filteredSubmissions, sortColumn, sortDirection]);
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredSubmissions, sortColumn, sortDirection]);
 
-    const handleSort = (column: string) => {
-        if (sortColumn === column) {
-            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-        } else {
-            setSortColumn(column);
-            setSortDirection("asc");
-        }
-    };
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
 
-    // ------------------------------------------------
-    // Pagination
-    // ------------------------------------------------
-    const totalPages = Math.ceil(sortedSubmissions.length / itemsPerPage);
+  // ------------------------------------------------
+  // Pagination
+  // ------------------------------------------------
+  const totalPages = Math.ceil(sortedSubmissions.length / itemsPerPage);
 
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentData = sortedSubmissions.slice(startIndex, startIndex + itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentData = sortedSubmissions.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, leadFilter]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, leadFilter]);
 
-    // ------------------------------------------------
-    // Excel Export
-    // ------------------------------------------------
-    const exportToExcel = () => {
-        if (!sortedSubmissions.length) return;
+  // ------------------------------------------------
+  // Excel Export
+  // ------------------------------------------------
+  const exportToExcel = () => {
+    if (!sortedSubmissions.length) return;
 
-        const exportData = sortedSubmissions.map((sub, i) => ({
-            "SL No": i + 1,
-            Code: sub.code,
-            "Lead Person": sub.lead_person,
-            Date: sub.createdAt?.toDate?.().toLocaleDateString() || "",
-            Time: sub.createdAt?.toDate?.().toLocaleTimeString() || "",
-            "Client Name": sub.client_name,
-            Scope: sub.scope,
-            "Starting Time": sub.starting_time,
-            "Phone No": [sub.phone_1, sub.phone_2].filter(Boolean).join(" / "),
-            District: sub.district,
-            Location: sub.location,
-            "Plot Size": sub.plot_size?.join(", "),
-            "Project Size": sub.project_size?.join(", "),
-            Remarks: sub.remarks,
-            Rooms: sub.rooms?.join(", "),
-            Budget: sub.budget,
-            "Special Notes": sub.special_notes?.join(", "),
-            "Send Message": sub.whatsapp_sent ? "Delivered" : "Pending",
-        }));
+    const exportData = sortedSubmissions.map((sub, i) => ({
+      "SL No": i + 1,
+      Code: sub.code,
+      "Lead Person": sub.lead_person,
+      Date: sub.createdAt?.toDate?.().toLocaleDateString() || "",
+      Time: sub.createdAt?.toDate?.().toLocaleTimeString() || "",
+      "Client Name": sub.client_name,
+      Scope: sub.scope,
+      "Starting Time": sub.starting_time,
+      "Phone No": [sub.phone_1, sub.phone_2].filter(Boolean).join(" / "),
+      District: sub.district,
+      Location: sub.location,
+      "Plot Size": sub.plot_size?.join(", "),
+      "Project Size": sub.project_size?.join(", "),
+      Remarks: sub.remarks,
+      Rooms: sub.rooms?.join(", "),
+      Budget: sub.budget,
+      "Special Notes": sub.special_notes?.join(", "),
+      "Send Message": sub.whatsapp_sent ? "Delivered" : "Pending",
+    }));
 
-        const ws = XLSX.utils.json_to_sheet(exportData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Submissions");
-        XLSX.writeFile(wb, "submissions.xlsx");
-    };
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Submissions");
+    XLSX.writeFile(wb, "submissions.xlsx");
+  };
 
-    // ------------------------------------------------
-    // WhatsApp Message Handlers
-    // ------------------------------------------------
-    const handleSendMessageNoTemplate = (name: string, scope: string, number: string) => {
-        if (user?.role !== "marketing") return;
+  // ------------------------------------------------
+  // WhatsApp Message Handlers
+  // ------------------------------------------------
+  const handleSendMessageNoTemplate = (
+    name: string,
+    scope: string,
+    number: string
+  ) => {
+    if (user?.role !== "marketing") return;
 
-        const lower = scope.toLowerCase();
+    const lower = scope.toLowerCase();
 
-        let message = "";
+    let message = "";
 
-        if (lower === "just enquiry" || lower === "dealers") {
-            message = `Hi ${name},
+    if (lower === "just enquiry" || lower === "dealers") {
+      message = `Hi ${name},
 Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
 
 It was a pleasure connecting with you. We appreciate your interest in Lempire Builders.
@@ -222,8 +236,8 @@ Warm regards,
 L’empire Builders
 +91 97784 11620
 +91 97784 11609`;
-        } else {
-            message = `Hi ${name},
+    } else {
+      message = `Hi ${name},
 Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
 
 We've noted your requirement regarding ${scope}.
@@ -233,247 +247,332 @@ Warm regards,
 L’empire Builders
 +91 97784 11620
 +91 97784 11609`;
-        }
+    }
 
-        window.open(`https://wa.me/${number}?text=${encodeURIComponent(message)}`, "_blank");
-    };
-
-    const handleSendMessage = async (docId: string) => {
-        if (user?.role !== "marketing") return;
-
-        setSendLoading(docId);
-
-        await axios.post(
-            "https://asia-south1-vanitha-veed.cloudfunctions.net/sendWhatsAppMessage",
-            { docId }
-        );
-
-        alert("WhatsApp message sent manually");
-        setSendLoading("");
-    };
-
-    // ------------------------------------------------
-    // Render
-    // ------------------------------------------------
-    if (!user) return <p className="mt-10 text-center text-gray-500">Loading user...</p>;
-    if (loading) return <p className="mt-10 text-center text-gray-500">Loading submissions...</p>;
-
-    // Collect unique lead persons
-    const uniqueLeads = [...new Set(submissions.map((s) => s.lead_person))];
-    const expoLocations = [...new Set(submissions.map((s) => s.expo_location))];
-
-    return (
-        <div className="py-6 mx-auto">
-            {/* Header Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h2 className="text-3xl font-semibold text-[#0c555e]">Your Submissions</h2>
-
-                <div className="flex flex-wrap gap-3 items-center">
-
-                    {/* Search */}
-                    <div className="relative">
-                        <Search className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-                        <input
-                            type="search"
-                            placeholder="Search anything..."
-                            className="pl-9 pr-3 py-2 border rounded-md shadow-sm w-60 focus:ring-2 focus:ring-[#0c555e]"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Lead Filter Dropdown */}
-                    <select className="border px-3 py-2 rounded-md shadow-sm" value={leadFilter} onChange={(e) => setLeadFilter(e.target.value)} >
-                        <option value="all">All Leads</option>
-                        {uniqueLeads.map((lead) => (
-                            <option key={lead} value={lead}>
-                                {lead}
-                            </option>
-                        ))}
-                    </select>
-
-                    {/* Expo locations Filter Dropdown */}
-                    <select className="border px-3 py-2 rounded-md shadow-sm" value={expoLocationsFilter} onChange={(e) => setExpoLocationsFilter(e.target.value)}>
-                        <option value="all">All Expo</option>
-                        {expoLocations.map((expo) => (
-                            <option key={expo} value={expo}>
-                                {expo}
-                            </option>
-                        ))}
-                    </select>
-
-                    {/* Export Button */}
-                    <button
-                        onClick={exportToExcel}
-                        className="flex items-center gap-2 bg-[#0c555e] hover:bg-[#11717b] text-white px-4 py-2 rounded-lg"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export
-                    </button>
-                </div>
-            </div>
-
-            {/* Table */}
-            <div className="bg-white border shadow-lg rounded-md overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse">
-
-                        {/* Table Head */}
-                        <thead className="bg-[#0c555e] text-white sticky top-0 text-sm">
-                            <tr>
-                                {[
-                                    { key: "sl", label: "SL No" },
-                                    { key: "whatsapp_sent", label: "Send Message" },
-                                    { key: "code", label: "Code" },
-                                    { key: "expo_location", label: "Expo Location" },
-                                    { key: "lead_person", label: "Lead Person" },
-                                    { key: "createdAt", label: "Date" },
-                                    { key: "createdAt", label: "Time" },
-                                    { key: "client_name", label: "Client Name" },
-                                    { key: "scope", label: "Scope" },
-                                    { key: "starting_time", label: "Starting Time" },
-                                    { key: "phone_1", label: "Phone No" },
-                                    { key: "district", label: "District" },
-                                    { key: "location", label: "Location" },
-                                    { key: "plot_size", label: "Plot Size" },
-                                    { key: "project_size", label: "Project Size" },
-                                    { key: "remarks", label: "Remarks" },
-                                    { key: "rooms", label: "Rooms" },
-                                    { key: "budget", label: "Budget" },
-                                    { key: "special_notes", label: "Special Notes" },
-                                    { key: "voice_recording", label: "Voice Recording" },
-                                    ...(user?.role === "marketing"
-                                        ? [{ key: "send", label: "Send Manually" }]
-                                        : []),
-                                ].map((col) => (
-                                    <th
-                                        key={col.label}
-                                        className="px-4 py-3 border cursor-pointer select-none"
-                                        onClick={() => col.key !== "sl" && col.key !== "send" && handleSort(col.key)}
-                                    >
-                                        <div className="flex items-center gap-1">
-                                            {col.label}
-                                            {sortColumn === col.key && (
-                                                <span className="text-xs">
-                                                    {sortDirection === "asc" ? "▲" : "▼"}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-
-                        {/* Table Body */}
-                        <tbody className="text-sm">
-                            {currentData.map((sub, i) => {
-                                const globalIndex = startIndex + i + 1;
-
-                                return (
-                                    <tr key={sub.id} className="border-b hover:bg-gray-50">
-                                        {/* SL NO */}
-                                        <td className="px-4 py-2">{globalIndex}</td>
-
-                                        {/* Send Message Column */}
-                                        <td className="px-4 py-2">
-                                            {sub.whatsapp_sent ? (
-                                                <span className="text-green-600 font-semibold">Delivered</span>
-                                            ) : (
-                                                <span className="text-red-600 font-semibold">Pending</span>
-                                            )}
-                                        </td>
-
-                                        <td className="px-4 py-2">{sub.code}</td>
-                                        <td className="px-4 py-2">{sub.expo_location}</td>
-                                        <td className="px-4 py-2">{sub.lead_person}</td>
-
-                                        <td className="px-4 py-2">
-                                            {sub.createdAt?.toDate().toLocaleDateString()}
-                                        </td>
-                                        <td className="px-4 py-2">
-                                            {sub.createdAt?.toDate().toLocaleTimeString()}
-                                        </td>
-
-                                        <td className="px-4 py-2 font-semibold">{sub.client_name}</td>
-                                        <td className="px-4 py-2">{sub.scope}</td>
-                                        <td className="px-4 py-2">{sub.starting_time}</td>
-                                        <td className="px-4 py-2">
-                                            {[sub.phone_1, sub.phone_2].filter(Boolean).join(", ")}
-                                        </td>
-                                        <td className="px-4 py-2">{sub.district}</td>
-                                        <td className="px-4 py-2">{sub.location}</td>
-                                        <td className="px-4 py-2">{sub.plot_size?.join(", ")}</td>
-                                        <td className="px-4 py-2">{sub.project_size?.join(", ")}</td>
-                                        <td className="px-4 py-2">{sub.remarks}</td>
-                                        <td className="px-4 py-2">{sub.rooms?.join(", ")}</td>
-                                        <td className="px-4 py-2">{sub.budget}</td>
-                                        <td className="px-4 py-2">{sub.special_notes?.join(", ")}</td>
-
-                                        <td className="px-4 py-2">
-                                            {sub.voice_recording ? (
-                                                <audio controls src={sub.voice_recording} className="w-full" />
-                                            ) : (
-                                                <span className="text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded-full">
-                                                    No Audio
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        {/* Marketing Manual Send */}
-                                        {user?.role === "marketing" && (
-                                            <td className="px-4 py-2">
-                                                {sendLoading === sub.id ? (
-                                                    <span className="text-blue-600 font-medium">Sending...</span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() =>
-                                                            sub.scope === "Just enquiry" || sub.scope === "Dealers"
-                                                                ? handleSendMessageNoTemplate(sub.client_name, sub.scope, sub.message_number)
-                                                                : handleSendMessage(sub.id)
-                                                        }
-                                                        className="text-[#0c555e] underline font-semibold hover:text-[#11717b]"
-                                                    >
-                                                        Send
-                                                    </button>
-                                                )}
-                                            </td>
-                                        )}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-
-                    {/* Pagination */}
-                    <div className="flex justify-end items-center gap-3 mt-4 mb-4">
-                        <button
-                            disabled={currentPage === 1}
-                            onClick={() => setCurrentPage((p) => p - 1)}
-                            className="px-3 py-1 border rounded disabled:opacity-50"
-                        >
-                            Prev
-                        </button>
-
-                        <span className="text-sm">
-                            Page {currentPage} of {totalPages}
-                        </span>
-
-                        <button
-                            disabled={currentPage === totalPages}
-                            onClick={() => setCurrentPage((p) => p + 1)}
-                            className="px-3 py-1 border rounded disabled:opacity-50"
-                        >
-                            Next
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    window.open(
+      `https://wa.me/${number}?text=${encodeURIComponent(message)}`,
+      "_blank"
     );
+  };
+
+  //////////////////////
+  //   const handleNewYearSendMessage = (number: string) => {
+  //     if (user?.role !== "marketing") return;
+
+  //     // const lower = scope.toLowerCase();
+
+  //     const message = "";
+
+  //     window.open(
+  //       `https://wa.me/${number}?text=${encodeURIComponent(message)}`,
+  //       "_blank"
+  //     );
+  //   };
+
+  const handleNewYearSendMessage = (number: string) => {
+    if (user?.role !== "marketing") return;
+
+    console.log("No. ", number);
+
+    const desktopUrl = `whatsapp://send?phone=${number}`;
+
+    const webUrl = `https://wa.me/${number}`;
+
+    window.location.href = desktopUrl;
+
+    setTimeout(() => {
+      window.open(webUrl, "_blank");
+    }, 800);
+  };
+
+  //////////////////////
+
+  const handleSendMessage = async (docId: string) => {
+    if (user?.role !== "marketing") return;
+
+    setSendLoading(docId);
+
+    await axios.post(
+      "https://asia-south1-vanitha-veed.cloudfunctions.net/sendWhatsAppMessage",
+      { docId }
+    );
+
+    alert("WhatsApp message sent manually");
+    setSendLoading("");
+  };
+
+  // ------------------------------------------------
+  // Render
+  // ------------------------------------------------
+  if (!user)
+    return <p className="mt-10 text-center text-gray-500">Loading user...</p>;
+  if (loading)
+    return (
+      <p className="mt-10 text-center text-gray-500">Loading submissions...</p>
+    );
+
+  // Collect unique lead persons
+  const uniqueLeads = [...new Set(submissions.map((s) => s.lead_person))];
+  const expoLocations = [...new Set(submissions.map((s) => s.expo_location))];
+
+  return (
+    <div className="py-6 mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-3xl font-semibold text-[#0c555e]">
+          Your Submissions
+        </h2>
+
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+            <input
+              type="search"
+              placeholder="Search anything..."
+              className="pl-9 pr-3 py-2 border rounded-md shadow-sm w-60 focus:ring-2 focus:ring-[#0c555e]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Lead Filter Dropdown */}
+          <select
+            className="border px-3 py-2 rounded-md shadow-sm"
+            value={leadFilter}
+            onChange={(e) => setLeadFilter(e.target.value)}
+          >
+            <option value="all">All Leads</option>
+            {uniqueLeads.map((lead) => (
+              <option key={lead} value={lead}>
+                {lead}
+              </option>
+            ))}
+          </select>
+
+          {/* Expo locations Filter Dropdown */}
+          <select
+            className="border px-3 py-2 rounded-md shadow-sm"
+            value={expoLocationsFilter}
+            onChange={(e) => setExpoLocationsFilter(e.target.value)}
+          >
+            <option value="all">All Expo</option>
+            {expoLocations.map((expo) => (
+              <option key={expo} value={expo}>
+                {expo}
+              </option>
+            ))}
+          </select>
+
+          {/* Export Button */}
+          <button
+            onClick={exportToExcel}
+            className="flex items-center gap-2 bg-[#0c555e] hover:bg-[#11717b] text-white px-4 py-2 rounded-lg"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border shadow-lg rounded-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse">
+            {/* Table Head */}
+            <thead className="bg-[#0c555e] text-white sticky top-0 text-sm">
+              <tr>
+                {[
+                  { key: "manual_message", label: "Manual Message" },
+                  { key: "sl", label: "SL No" },
+                  { key: "scope", label: "Scope" },
+                  { key: "whatsapp_sent", label: "Send Message" },
+                  { key: "code", label: "Code" },
+                  { key: "expo_location", label: "Expo Location" },
+                  { key: "lead_person", label: "Lead Person" },
+                  { key: "createdAt", label: "Date" },
+                  { key: "createdAt", label: "Time" },
+                  { key: "client_name", label: "Client Name" },
+                  { key: "starting_time", label: "Starting Time" },
+                  { key: "phone_1", label: "Phone No" },
+                  { key: "district", label: "District" },
+                  { key: "location", label: "Location" },
+                  { key: "plot_size", label: "Plot Size" },
+                  { key: "project_size", label: "Project Size" },
+                  { key: "remarks", label: "Remarks" },
+                  { key: "rooms", label: "Rooms" },
+                  { key: "budget", label: "Budget" },
+                  { key: "special_notes", label: "Special Notes" },
+                  { key: "voice_recording", label: "Voice Recording" },
+                  ...(user?.role === "marketing"
+                    ? [{ key: "send", label: "Send Manually" }]
+                    : []),
+                ].map((col) => (
+                  <th
+                    key={col.label}
+                    className="px-4 py-3 border cursor-pointer select-none"
+                    onClick={() =>
+                      col.key !== "sl" &&
+                      col.key !== "send" &&
+                      handleSort(col.key)
+                    }
+                  >
+                    <div className="flex items-center gap-1">
+                      {col.label}
+                      {sortColumn === col.key && (
+                        <span className="text-xs">
+                          {sortDirection === "asc" ? "▲" : "▼"}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            {/* Table Body */}
+            <tbody className="text-sm">
+              {currentData.map((sub, i) => {
+                const globalIndex = startIndex + i + 1;
+
+                return (
+                  <tr key={sub.id} className="border-b hover:bg-gray-50">
+                    {user?.role === "marketing" && (
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={() =>
+                            handleNewYearSendMessage(sub.message_number)
+                          }
+                          className="text-[#0c555e] underline font-semibold hover:text-[#11717b]"
+                        >
+                          Send
+                        </button>
+                      </td>
+                    )}
+                    {/* SL NO */}
+                    <td className="px-4 py-2">{globalIndex}</td>
+                    <td className="px-4 py-2">{sub.scope}</td>
+
+                    {/* Send Message Column */}
+                    <td className="px-4 py-2">
+                      {sub.whatsapp_sent ? (
+                        <span className="text-green-600 font-semibold">
+                          Delivered
+                        </span>
+                      ) : (
+                        <span className="text-red-600 font-semibold">
+                          Pending
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-2">{sub.code}</td>
+                    <td className="px-4 py-2">{sub.expo_location}</td>
+                    <td className="px-4 py-2">{sub.lead_person}</td>
+
+                    <td className="px-4 py-2">
+                      {sub.createdAt?.toDate().toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-2">
+                      {sub.createdAt?.toDate().toLocaleTimeString()}
+                    </td>
+
+                    <td className="px-4 py-2 font-semibold">
+                      {sub.client_name}
+                    </td>
+                    {/* <td className="px-4 py-2">{sub.scope}</td> */}
+                    <td className="px-4 py-2">{sub.starting_time}</td>
+                    <td className="px-4 py-2">
+                      {[sub.phone_1, sub.phone_2].filter(Boolean).join(", ")}
+                    </td>
+                    <td className="px-4 py-2">{sub.district}</td>
+                    <td className="px-4 py-2">{sub.location}</td>
+                    <td className="px-4 py-2">{sub.plot_size?.join(", ")}</td>
+                    <td className="px-4 py-2">
+                      {sub.project_size?.join(", ")}
+                    </td>
+                    <td className="px-4 py-2">{sub.remarks}</td>
+                    <td className="px-4 py-2">{sub.rooms?.join(", ")}</td>
+                    <td className="px-4 py-2">{sub.budget}</td>
+                    <td className="px-4 py-2">
+                      {sub.special_notes?.join(", ")}
+                    </td>
+
+                    <td className="px-4 py-2">
+                      {sub.voice_recording ? (
+                        <audio
+                          controls
+                          src={sub.voice_recording}
+                          className="w-full"
+                        />
+                      ) : (
+                        <span className="text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded-full">
+                          No Audio
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Marketing Manual Send */}
+                    {user?.role === "marketing" && (
+                      <td className="px-4 py-2">
+                        {sendLoading === sub.id ? (
+                          <span className="text-blue-600 font-medium">
+                            Sending...
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              sub.scope === "Just enquiry" ||
+                              sub.scope === "Dealers"
+                                ? handleSendMessageNoTemplate(
+                                    sub.client_name,
+                                    sub.scope,
+                                    sub.message_number
+                                  )
+                                : handleSendMessage(sub.id)
+                            }
+                            className="text-[#0c555e] underline font-semibold hover:text-[#11717b]"
+                          >
+                            Send
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Pagination */}
+          <div className="flex justify-end items-center gap-3 mt-4 mb-4">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Prev
+            </button>
+
+            <span className="text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default Submissions;
-
 
 // origin
 // import { useEffect, useState } from "react";
@@ -547,7 +646,6 @@ export default Submissions;
 //         }
 //     };
 
-
 //     useEffect(() => {
 //         fetchSubmissions();
 //     }, [user]);
@@ -587,40 +685,40 @@ export default Submissions;
 //         XLSX.writeFile(workbook, "submissions.xlsx");
 //     };
 
-//     const handleSendMessageNoTemplate = (clientName: string, scope: string, messageNumber: string) => {
-//         if (user?.role !== "marketing") return
+// const handleSendMessageNoTemplate = (clientName: string, scope: string, messageNumber: string) => {
+//     if (user?.role !== "marketing") return
 
-//         let message = "";
+//     let message = "";
 
-//         const lowerScope = scope.toLowerCase(); // normalize
+//     const lowerScope = scope.toLowerCase(); // normalize
 
-//         if (lowerScope === "just enquiry" || lowerScope === "dealers") {
-//             message = `Hi ${clientName},
-//     Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
+//     if (lowerScope === "just enquiry" || lowerScope === "dealers") {
+//         message = `Hi ${clientName},
+// Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
 
-//     It was a pleasure connecting with you. We appreciate your time and interest in Lempire Builders.
+// It was a pleasure connecting with you. We appreciate your time and interest in Lempire Builders.
 
-//     Warm regards,
-//     L’empire Builders
-//     +91 97784 11620
-//     +91 97784 11609`;
-//         } else {
-//             message = `Hi ${clientName},
-//     Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
+// Warm regards,
+// L’empire Builders
+// +91 97784 11620
+// +91 97784 11609`;
+//     } else {
+//         message = `Hi ${clientName},
+// Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
 
-//     We're really glad to have hosted you and appreciate your interest in our work.
+// We're really glad to have hosted you and appreciate your interest in our work.
 
-//     We've noted your requirement regarding ${scope} and our technical team will be connecting with you shortly to discuss your project in detail.
+// We've noted your requirement regarding ${scope} and our technical team will be connecting with you shortly to discuss your project in detail.
 
-//     Warm regards,
-//     L’empire Builders
-//     +91 97784 11620
-//     +91 97784 11609`;
-//         }
+// Warm regards,
+// L’empire Builders
+// +91 97784 11620
+// +91 97784 11609`;
+//     }
 
-//         const whatsappLink = `https://wa.me/${messageNumber}?text=${encodeURIComponent(message)}`;
-//         window.open(whatsappLink, "_blank");
-//     };
+//     const whatsappLink = `https://wa.me/${messageNumber}?text=${encodeURIComponent(message)}`;
+//     window.open(whatsappLink, "_blank");
+// };
 
 //     const [sendLoading, setSendLoading] = useState("")
 //     const handleSendMessage = async (docId: string) => {
@@ -646,7 +744,6 @@ export default Submissions;
 //             sub.scope?.toLowerCase().includes(term)
 //         );
 //     });
-
 
 //     const [currentPage, setCurrentPage] = useState(1);
 //     const itemsPerPage = 10;
@@ -795,7 +892,6 @@ export default Submissions;
 //                                         <td className="px-4 py-2">{sub?.voice_recording ? <audio controls src={sub?.voice_recording} className="mt-2 w-full" /> : <span className="text-green-700 font-semibold bg-green-100 px-2 py-1 rounded-full text-xs">
 //                                             No Voices
 //                                         </span>}</td>
-
 
 //                                         {user?.role === "marketing" &&
 //                                             <td className="px-4 py-2">
