@@ -12,15 +12,28 @@ import Header from "./Components/Header";
 import Submissions from "./Components/Submissions";
 
 export default function App() {
-
   return (
     <BrowserRouter>
       <UserProvider>
         <Header />
-        <div className="mt-[70px]" >
+        <div className="mt-[70px]">
           <Routes>
-            <Route path="/" element={<PrivateRoute><RequirmentsForm /></PrivateRoute>} />
-            <Route path="/submissions" element={<PrivateRoute><Submissions /></PrivateRoute>} />
+            <Route
+              path="/"
+              element={
+                <PrivateRoute>
+                  <RequirmentsForm />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/submissions"
+              element={
+                <PrivateRoute>
+                  <Submissions />
+                </PrivateRoute>
+              }
+            />
             {/* <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} /> */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -32,7 +45,6 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
 
 // // src/App.tsx
 // import { BrowserRouter, Routes, Route } from "react-router-dom";

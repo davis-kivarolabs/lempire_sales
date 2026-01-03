@@ -48,7 +48,7 @@ const RequirmentsForm = () => {
     rooms: [] as string[],
     budget: "",
     remarks: "",
-    expo_location: "thiruvananthapuram",
+    expo_location: "kottayam",
     special_notes: [] as string[],
     // color: [] as string[],
   });
@@ -59,6 +59,7 @@ const RequirmentsForm = () => {
   const handleSelectChange = (key: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
+      expo_location: "kottayam",
       [key]: value.map((v: any) => v.value),
     }));
   };
