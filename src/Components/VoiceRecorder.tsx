@@ -36,9 +36,12 @@ const VoiceRecorder = forwardRef<VoiceRecorderHandle, VoiceRecorderProps>(
 
         const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
           ? "audio/mp4"
-          : MediaRecorder.isTypeSupported("audio/mpeg")
-          ? "audio/mpeg"
-          : "audio/webm";
+          : "audio/mpeg";
+        // const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
+        //   ? "audio/mp4"
+        //   : MediaRecorder.isTypeSupported("audio/mpeg")
+        //   ? "audio/mpeg"
+        //   : "audio/webm";
 
         const mediaRecorder = new MediaRecorder(stream, { mimeType });
 

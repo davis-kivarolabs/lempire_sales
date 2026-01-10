@@ -555,6 +555,8 @@ L'empire Builders
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentData.map((sub, i) => {
                     const globalIndex = startIndex + i + 1;
+
+                    console.log("voice: ",sub.lead_person, sub.voice_recording);
                     return (
                       <tr
                         key={sub.id}
