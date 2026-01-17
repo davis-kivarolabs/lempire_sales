@@ -6,6 +6,7 @@ import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useUser } from "../context/UserContext";
 import axios from "axios";
+// import { useAudioConverter } from "./useAudioConverter";
 
 // // Temporary mock imports for demonstration
 // const db = null;
@@ -36,6 +37,7 @@ interface Submission {
   user_id: string[];
   whatsapp_sent: boolean;
   voice_recording: string;
+  voice_recordings: string[];
   whatsapp_sent_at: string;
 }
 
@@ -301,6 +303,18 @@ L'empire Builders
     }
   };
 
+
+  // const { convertWebmToMp3, loading:convertLoading, progress } = useAudioConverter();
+
+  // const handleConvert = async (webmBlob: Blob) => {
+  //   console.log("success start",webmBlob);
+  //   const mp3Blob = await convertWebmToMp3(webmBlob);
+
+  //   // upload mp3Blob to Firebase
+  //   console.log("success ",mp3Blob);
+  // };
+
+  
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -316,6 +330,8 @@ L'empire Builders
       </div>
     );
   }
+
+
 
   return (
     <div className="min-h-screen p-4 sm:p-6">
@@ -556,7 +572,19 @@ L'empire Builders
                   {currentData.map((sub, i) => {
                     const globalIndex = startIndex + i + 1;
 
-                    console.log("voice: ",sub.lead_person, sub.voice_recording);
+                    console.log(
+                      "voice: ",
+                      sub.lead_person,
+                      sub.voice_recording?.replace(".webm", ".mp4")
+                    );
+
+
+                    const voices = Array.isArray(sub.voice_recordings)
+                          ? sub.voice_recordings
+                          : sub.voice_recording
+                          ? [sub.voice_recording]
+                          : [];
+
                     return (
                       <tr
                         key={sub.id}
@@ -706,17 +734,32 @@ L'empire Builders
 
                         {/* Voice Recording */}
                         <td className="px-4 py-3">
-                          {sub.voice_recording ? (
+                       {voices.length > 0 ? (
+                          voices.map((url, i) => (
+                            // <audio key={i} controls src={url} className="h-8 w-full" />
+                             <audio
+                             key={i}
+                              controls
+                              src={url}
+                              className="h-8"
+                            />
+                          ))
+                        ) : (
+                          <span className="text-gray-400 text-xs">No Audio</span>
+                        )}
+
+                          {/* {sub.voice_recording ? (
                             <audio
                               controls
                               src={sub.voice_recording}
+                              // src={sub.voice_recording}
                               className="h-8"
                             />
                           ) : (
                             <span className="text-gray-400 text-xs bg-gray-50 px-2 py-1 rounded">
                               No Audio
                             </span>
-                          )}
+                          )} */}
                         </td>
 
                         {/* WhatsApp Status */}
