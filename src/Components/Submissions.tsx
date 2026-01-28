@@ -110,9 +110,7 @@ const Submissions = () => {
 
 
 
-  useEffect(() => {
-    fetchSubmissions();
-  }, [user]);
+
 
   const searchInSubmission = (sub: any, term: string) => {
     const t = term.toLowerCase();
@@ -332,97 +330,99 @@ L'empire Builders
   const [openRecentProgress, setOpenRecentProgress] = useState<Submission>()
   const [recentVoices, setRecentVoices] = useState<VoiceItem[]>([]);
 
-//   import { doc, updateDoc, serverTimestamp, arrayUnion } from "firebase/firestore";
-// import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-// import { db, storage } from "../firebase";
 
-// const updateRecentProgress = async ( submissionId: string, remarks: string, voices: VoicePayload[] ) => {
-//   try {
-//     const uploadedVoices: { url: string; createdAt: any }[] = [];
+const [updateLoading, setUpdateLoading] = useState(false);
+const updateRecentProgress = async ( submissionId: string, remarks: string, voices: { blob: Blob; id: string }[], userId: string ) => {
+  setUpdateLoading(true);
 
-//     // upload voices first
-//     for (const voice of voices) {
-//       const voiceRef = ref(
-//         storage,
-//         `submission_voices/${submissionId}/${crypto.randomUUID()}.webm`
-//       );
+  try {
+    const uploadedVoiceURLs: string[] = [];
 
-//       await uploadBytes(voiceRef, voice.blob);
-//       const url = await getDownloadURL(voiceRef);
+    // upload voices
+    for (const voice of voices) {
+      const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
 
-//       uploadedVoices.push({
-//         url,
-//         createdAt: serverTimestamp(),
-//       });
-//     }
+      const fileRef = ref(
+        storage,
+        `submission_voices/${submissionId}/${userId}-${Date.now()}-${voice.id}.${ext}`
+      );
 
-//     // update firestore
-//     const submissionRef = doc(db, "submissions", submissionId);
+      await uploadBytes(fileRef, voice.blob);
+      const url = await getDownloadURL(fileRef);
 
-//    const res = await updateDoc(submissionRef, {
-//       recent_remarks: remarks,
-//       recent_voices: arrayUnion(...uploadedVoices),
-//       updatedAt: serverTimestamp(),
-//     });
+      uploadedVoiceURLs.push(url);
+    }
 
-//     console.error("Update recent progress success:", res);
-//     return { success: true };
-//   } catch (error) {
-//     console.error("Update recent progress failed:", error);
-//     throw error;
+    // update firestore (APPEND, not overwrite)
+    const submissionRef = doc(db, "submissions", submissionId);
+
+    await updateDoc(submissionRef, {
+      recent_remarks: remarks,
+      recent_recordings: arrayUnion(...uploadedVoiceURLs),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Failed to update recent progress:", error);
+  } finally {
+    setUpdateLoading(false);
+    setFormData(prev => ({
+    ...prev,
+    recent_remarks: ""
+    }));
+  }
+};
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, [user, updateLoading]);
+
+
+// const updateRecentProgress = async ( submissionId: string,remarks: string,voices: { blob: Blob; id: string }[],userId: string ) => {
+//   const uploadedVoiceURLs: string[] = [];
+
+//   // upload voices (SAME pattern as first submission)
+//   for (const voice of voices) {
+//     const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
+
+//     const fileRef = ref(
+//       storage,
+//       `submission_voices/${submissionId}/${userId}-${Date.now()}-${voice.id}.${ext}`
+//     );
+
+//     await uploadBytes(fileRef, voice.blob);
+//     const url = await getDownloadURL(fileRef);
+
+//     uploadedVoiceURLs.push(url);
 //   }
+
+//   // update firestore (APPEND, not overwrite)
+//   const submissionRef = doc(db, "submissions", submissionId);
+
+//   await updateDoc(submissionRef, {
+//     recent_remarks: remarks,
+//     recent_recordings: arrayUnion(...uploadedVoiceURLs),
+//     updatedAt: serverTimestamp(),
+//   });
 // };
 
-const updateRecentProgress = async (
-  submissionId: string,
-  remarks: string,
-  voices: { blob: Blob; id: string }[],
-  userId: string
-) => {
-  const uploadedVoiceURLs: string[] = [];
 
-  // upload voices (SAME pattern as first submission)
-  for (const voice of voices) {
-    const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
+  const handleUpdateRecentProgress = async () => {
+    if (!openRecentProgress?.id) return;
+      if(!formData.recent_remarks && recentVoices.length < 1) return;
 
-    const fileRef = ref(
-      storage,
-      `submission_voices/${submissionId}/${userId}-${Date.now()}-${voice.id}.${ext}`
+    await updateRecentProgress(
+      openRecentProgress.id,
+      formData.recent_remarks,
+      recentVoices,
+      user?.user_id || ""
     );
 
-    await uploadBytes(fileRef, voice.blob);
-    const url = await getDownloadURL(fileRef);
+    setRecentVoices([]);
+    setOpenRecentProgress(undefined);
 
-    uploadedVoiceURLs.push(url);
-  }
-
-  // update firestore (APPEND, not overwrite)
-  const submissionRef = doc(db, "submissions", submissionId);
-
-  await updateDoc(submissionRef, {
-    recent_remarks: remarks,
-    recent_recordings: arrayUnion(...uploadedVoiceURLs),
-    updatedAt: serverTimestamp(),
-  });
-};
-
-
-const handleUpdateRecentProgress = async () => {
-  if (!openRecentProgress?.id) return;
-
-await updateRecentProgress(
-  openRecentProgress.id,
-  formData.recent_remarks,
-  recentVoices,
-  user?.user_id || ""
-);
-
-setRecentVoices([]);
-setOpenRecentProgress(undefined);
-
-  setRecentVoices([]);
-  setOpenRecentProgress(undefined);
-};
+    setRecentVoices([]);
+    setOpenRecentProgress(undefined);
+  };
 
 
   // const [openRecentProgress, setOpenRecentProgress] = useState<Submission>()
@@ -442,22 +442,21 @@ setOpenRecentProgress(undefined);
   };
   //////////// more details end //////////////
   
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading user...</div>
-      </div>
-    );
-  }
+  // if (!user) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-gray-500">Loading user...</div>
+  //     </div>
+  //   );
+  // }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading submissions...</div>
-      </div>
-    );
-  }
-
+  // if (loading) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <div className="text-gray-500">Loading submissions...</div>
+  //     </div>
+  //   );
+  // }
 
 
   return (
@@ -703,8 +702,7 @@ setOpenRecentProgress(undefined);
                 </thead>
 
                 <tbody className="bg-white divide-y divide-gray-200">
-                 
-                  {currentData.map((sub, i) => {
+                  {currentData?.map((sub, i) => {
                     const globalIndex = startIndex + i + 1;
                     
                     const voices = Array.isArray(sub.voice_recordings)
@@ -719,145 +717,140 @@ setOpenRecentProgress(undefined);
                           ? [sub.recent_recordings]
                           : [];
 
-                          console.log("sub: ", submissions.find((item)=>item.id===openRecentProgress?.id), savedRecentVoices)
+                    console.log("sub: ", submissions.find((item)=>item.id===openRecentProgress?.id), savedRecentVoices);
                     return (
-                      <tr key={sub.id} className="hover:bg-gray-50 transition-colors" >
-                        
-                        {/* ////////////// recent progress start ////////////////// */}
-                       {/* ////////////// recent progress start ////////////////// */}
-{openRecentProgress?.id === sub?.id && (
-  <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-    <div className="relative w-[92%] md:w-[600px] bg-white rounded-2xl shadow-xl flex flex-col max-h-[85dvh]" >
+                      <>
+                      {/* ////////////// recent progress start ////////////////// */}
+                      {openRecentProgress?.id === sub?.id && (
+                          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                            <div className="relative w-[92%] md:w-[600px] bg-white rounded-2xl shadow-xl flex flex-col max-h-[85dvh]" >
 
-      {/* ---------- Header ---------- */}
-      <div className="flex items-center justify-between px-6 py-4 border-b">
-        <div>
-          <h2 className="text-lg font-semibold">Recent Progress</h2>
-          <p className="text-xs text-gray-500">
-            {openRecentProgress?.client_name}
-          </p>
-        </div>
+                              {/* ---------- Header ---------- */}
+                              <div className="flex items-center justify-between px-6 py-4 border-b">
+                                <div>
+                                  <h2 className="text-lg font-semibold">Recent Progress</h2>
+                                  <p className="text-xs text-gray-500">
+                                    {openRecentProgress?.client_name}
+                                  </p>
+                                </div>
 
-        <button
-          onClick={() => setOpenRecentProgress(undefined)}
-          className="text-gray-400 hover:text-black text-xl"
-        >
-          ✕
-        </button>
-      </div>
+                                <button
+                                  onClick={() => setOpenRecentProgress(undefined)}
+                                  className="text-gray-400 hover:text-black text-xl"
+                                >
+                                  ✕
+                                </button>
+                              </div>
 
-      {/* ---------- Body ---------- */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+                              {/* ---------- Body ---------- */}
+                              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
 
-        {/* Remarks */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">
-            Remarks
-          </label>
-          <input
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            placeholder="Enter remarks"
-            value={formData.recent_remarks}
-            onChange={(e) =>
-              handleInputChange("recent_remarks", e.target.value)
-            }
-          />
-        </div>
+                                {/* Remarks */}
+                                <div className="space-y-1">
+                                  <label className="text-sm font-medium text-gray-700">
+                                    Remarks
+                                  </label>
+                                  <input
+                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                                    placeholder="Enter remarks"
+                                    value={formData.recent_remarks}
+                                    onChange={(e) =>
+                                      handleInputChange("recent_remarks", e.target.value)
+                                    }
+                                  />
+                                </div>
+                                  <p>{sub.recent_remarks}</p>
 
-        {/* Local Recordings */}
-        {recentVoices.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-semibold text-gray-700">
-              New Recordings
-            </h4>
+                                {/* Local Recordings */}
+                                {recentVoices.length > 0 && (
+                                  <div className="space-y-2">
+                                    <h4 className="text-sm font-semibold text-gray-700">
+                                      New Recordings
+                                    </h4>
 
-            {recentVoices.map((voice) => (
-              <div
-                key={voice.id}
-                className="flex items-center gap-3 bg-gray-100 rounded-lg p-3"
-              >
-                <audio controls src={voice.localUrl} className="flex-1" />
+                                    {recentVoices.map((voice) => (
+                                      <div
+                                        key={voice.id}
+                                        className="flex items-center gap-3 bg-gray-100 rounded-lg p-3"
+                                      >
+                                        <audio controls src={voice.localUrl} className="flex-1" />
 
-                <button
-                  onClick={() =>
-                    setRecentVoices((prev) =>
-                      prev.filter((v) => v.id !== voice.id)
-                    )
-                  }
-                  className="text-red-500 text-xs hover:underline"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                                        <button
+                                          onClick={() =>
+                                            setRecentVoices((prev) =>
+                                              prev.filter((v) => v.id !== voice.id)
+                                            )
+                                          }
+                                          className="text-red-500 text-xs hover:underline"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
 
-        {/* Saved Recordings */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold text-gray-700">
-            Saved Recordings
-          </h4>
+                                {/* Saved Recordings */}
+                                <div className="space-y-2">
+                                  <h4 className="text-sm font-semibold text-gray-700">
+                                    Saved Recordings
+                                  </h4>
 
-          {savedRecentVoices.length > 0 ? (
-            <div className="space-y-2">
-              {savedRecentVoices.map((url, i) => (
-                <audio
-                  key={i}
-                  controls
-                  src={url}
-                  className="w-full"
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400">No audio available</p>
-          )}
-        </div>
+                                  {savedRecentVoices.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {savedRecentVoices.map((url, i) => (
+                                        <audio
+                                          key={i}
+                                          controls
+                                          src={url}
+                                          className="w-full"
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-gray-400">No audio available</p>
+                                  )}
+                                </div>
 
-        {/* Recorder */}
-        <div>
-          <VoiceRecorder
-            ref={recorderRef}
-            onRecordingComplete={(blob, localUrl) => {
-              setRecentVoices((prev) => [
-                ...prev,
-                {
-                  id: crypto.randomUUID(),
-                  blob,
-                  localUrl,
-                },
-              ]);
-            }}
-          />
-        </div>
-      </div>
+                                {/* Recorder */}
+                                <div>
+                                  <VoiceRecorder
+                                    ref={recorderRef}
+                                    onRecordingComplete={(blob, localUrl) => {
+                                      setRecentVoices((prev) => [
+                                        ...prev,
+                                        {
+                                          id: crypto.randomUUID(),
+                                          blob,
+                                          localUrl,
+                                        },
+                                      ]);
+                                    }}
+                                  />
+                                </div>
+                              </div>
 
-      {/* ---------- Footer ---------- */}
-      <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3">
-        <button
-          onClick={() => {
-            setOpenRecentProgress(undefined)
-            setRecentVoices([])
-          }}
-          className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100"
-        >
-          Cancel
-        </button>
+                              {/* ---------- Footer ---------- */}
+                              <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3">
+                                <button
+                                  onClick={() => {
+                                    setOpenRecentProgress(undefined)
+                                    setRecentVoices([])
+                                  }} className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100" >Cancel</button>
 
-        <button
-          onClick={handleUpdateRecentProgress}
-          className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900"
-        >
-          Update Progress
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-{/* ////////////// recent progress end ////////////////// */}
-
-                        {/* ////////////// recent progress end ////////////////// */}
+                                <button onClick={handleUpdateRecentProgress} className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900" >
+                                  {updateLoading ? "Updating" : "Update Progress"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                      )}
+                      {/* ////////////// recent progress end //////////////////// */}
+                     {loading ? 
+                     <div className="flex items-center justify-center min-h-screen">
+                      <div className="text-gray-500">Loading submissions...</div>
+                     </div>
+                     : <tr key={sub.id} className="hover:bg-gray-50 transition-colors" >
 
                         {/* Action */}
                         {user?.role === "marketing" && (
@@ -1077,7 +1070,8 @@ setOpenRecentProgress(undefined);
                             )}
                           </td>
                         )}
-                      </tr>
+                      </tr>}
+                      </>
                     );
                   })}
                 </tbody>
