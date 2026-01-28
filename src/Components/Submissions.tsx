@@ -533,12 +533,12 @@ setOpenRecentProgress(undefined);
                 <thead className="bg-[#0c555e] sticky top-0 z-10">
                   <tr>
                     {[
-                      {
-                        key: "manual_message",
-                        label: "Action",
-                        width: "w-24",
-                        sortable: false,
-                      },
+                      // {
+                      //   key: "manual_message",
+                      //   label: "Action",
+                      //   width: "w-24",
+                      //   sortable: false,
+                      // },
                       {
                         key: "sl",
                         label: "SL",
