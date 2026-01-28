@@ -3,13 +3,14 @@ import "./styles/main.scss";
 import Login from "./Components/Login";
 import PrivateRoute from "./Components/PrivateRoute";
 import Register from "./Components/Register";
-import ForgotPassword from "./Components/ForgotPassword";
+// import ForgotPassword from "./Components/ForgotPassword";
 import VerifyOtp from "./Components/VerifyOtp";
 // import Dashboard from "./Components/Dashboard";
 import RequirmentsForm from "./pages/RequirmentsForm";
 import { UserProvider } from "./context/UserContext";
 import Header from "./Components/Header";
 import Submissions from "./Components/Submissions";
+// import ChangePassword from "./Components/ChangePassword";
 
 export default function App() {
   return (
@@ -37,8 +38,10 @@ export default function App() {
             {/* <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} /> */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/forgot" element={<ForgotPassword />} />
+            {/* <Route path="/forgot" element={<ForgotPassword />} /> */}
             <Route path="/verify-otp" element={<VerifyOtp />} />
+
+            {/* <Route path="/change-password" element={<ChangePassword />} /> */}
           </Routes>
         </div>
       </UserProvider>

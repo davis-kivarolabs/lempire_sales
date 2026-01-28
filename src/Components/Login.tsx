@@ -25,6 +25,7 @@ export default function Login() {
 
             const q = query(
                 collection(db, "users"),
+                where("role", "==", "admin"),
                 where("login_id", "==", loginId),
                 where("password", "==", hashedPw)
             );
@@ -106,9 +107,13 @@ export default function Login() {
                         <path d="M4.63497 0L8.64511 4.03034L0.492718 12.1548L8.71817 20.3553L4.60389 24.4681C3.3107 23.2246 1.96155 21.947 0.646594 20.6289C0.167864 20.1455 0 19.4772 0 18.7948C0 14.4292 0 10.0632 0 5.69657C0 5.02977 0.155432 4.36919 0.621727 3.89978C1.93202 2.56773 3.30137 1.28697 4.63497 0Z" fill="#C51F2C" />
                         <path d="M8.81738 12.2125L12.7389 8.2832C13.5363 9.01684 14.4487 9.68209 15.145 10.537C16.017 11.5908 15.8942 13.1902 14.9787 14.2036C14.3088 14.9434 13.5612 15.6134 12.8726 16.2895L8.81738 12.2125Z" fill="#C51F2C" />
                     </svg>
-
                 </div>
             </div>
+
+            {/* <button onClick={() => navigate("/change-password")}>
+                Change Password
+            </button> */}
+
 
             {/* <div style={{ marginTop: 12 }}>
                 Don’t have an account?{" "}

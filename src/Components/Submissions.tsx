@@ -1,11 +1,14 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Download, Search, ChevronUp, ChevronDown } from "lucide-react";
 
 // You'll need to import these from your actual project
-import { db } from "../firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { db, storage } from "../firebase";
+import { collection, query, where, getDocs, serverTimestamp, doc, updateDoc, arrayUnion } from "firebase/firestore";
 import { useUser } from "../context/UserContext";
 import axios from "axios";
+import VoiceRecorder, { type VoiceRecorderHandle } from "./VoiceRecorder";
+import type { VoiceItem } from "../pages/RequirmentsForm";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 // import { useAudioConverter } from "./useAudioConverter";
 
 // // Temporary mock imports for demonstration
@@ -39,6 +42,13 @@ interface Submission {
   voice_recording: string;
   voice_recordings: string[];
   whatsapp_sent_at: string;
+  
+  recent_remarks?: string;
+  // recent_recordings?: {
+  //   url: string;
+  //   createdAt: any;
+  // }[];
+  recent_recordings?: string[];
 }
 
 const Submissions = () => {
@@ -97,6 +107,8 @@ const Submissions = () => {
       setLoading(false);
     }
   };
+
+
 
   useEffect(() => {
     fetchSubmissions();
@@ -314,6 +326,121 @@ L'empire Builders
   //   console.log("success ",mp3Blob);
   // };
 
+
+  //////////// more details start ////////////
+ 
+  const [openRecentProgress, setOpenRecentProgress] = useState<Submission>()
+  const [recentVoices, setRecentVoices] = useState<VoiceItem[]>([]);
+
+//   import { doc, updateDoc, serverTimestamp, arrayUnion } from "firebase/firestore";
+// import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// import { db, storage } from "../firebase";
+
+// const updateRecentProgress = async ( submissionId: string, remarks: string, voices: VoicePayload[] ) => {
+//   try {
+//     const uploadedVoices: { url: string; createdAt: any }[] = [];
+
+//     // upload voices first
+//     for (const voice of voices) {
+//       const voiceRef = ref(
+//         storage,
+//         `submission_voices/${submissionId}/${crypto.randomUUID()}.webm`
+//       );
+
+//       await uploadBytes(voiceRef, voice.blob);
+//       const url = await getDownloadURL(voiceRef);
+
+//       uploadedVoices.push({
+//         url,
+//         createdAt: serverTimestamp(),
+//       });
+//     }
+
+//     // update firestore
+//     const submissionRef = doc(db, "submissions", submissionId);
+
+//    const res = await updateDoc(submissionRef, {
+//       recent_remarks: remarks,
+//       recent_voices: arrayUnion(...uploadedVoices),
+//       updatedAt: serverTimestamp(),
+//     });
+
+//     console.error("Update recent progress success:", res);
+//     return { success: true };
+//   } catch (error) {
+//     console.error("Update recent progress failed:", error);
+//     throw error;
+//   }
+// };
+
+const updateRecentProgress = async (
+  submissionId: string,
+  remarks: string,
+  voices: { blob: Blob; id: string }[],
+  userId: string
+) => {
+  const uploadedVoiceURLs: string[] = [];
+
+  // upload voices (SAME pattern as first submission)
+  for (const voice of voices) {
+    const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
+
+    const fileRef = ref(
+      storage,
+      `submission_voices/${submissionId}/${userId}-${Date.now()}-${voice.id}.${ext}`
+    );
+
+    await uploadBytes(fileRef, voice.blob);
+    const url = await getDownloadURL(fileRef);
+
+    uploadedVoiceURLs.push(url);
+  }
+
+  // update firestore (APPEND, not overwrite)
+  const submissionRef = doc(db, "submissions", submissionId);
+
+  await updateDoc(submissionRef, {
+    recent_remarks: remarks,
+    recent_recordings: arrayUnion(...uploadedVoiceURLs),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+
+const handleUpdateRecentProgress = async () => {
+  if (!openRecentProgress?.id) return;
+
+await updateRecentProgress(
+  openRecentProgress.id,
+  formData.recent_remarks,
+  recentVoices,
+  user?.user_id || ""
+);
+
+setRecentVoices([]);
+setOpenRecentProgress(undefined);
+
+  setRecentVoices([]);
+  setOpenRecentProgress(undefined);
+};
+
+
+  // const [openRecentProgress, setOpenRecentProgress] = useState<Submission>()
+  // const [voices, setVoices] = useState<VoiceItem[]>([]);
+  
+  const recorderRef = useRef<VoiceRecorderHandle | null>(null);
+
+  const [formData, setFormData] = useState({
+    recent_remarks: ""
+  });
+
+  const handleInputChange = (key: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+  //////////// more details end //////////////
   
   if (!user) {
     return (
@@ -334,7 +461,8 @@ L'empire Builders
 
 
   return (
-    <div className="min-h-screen p-4 sm:p-6">
+    // <div className="min-h-screen p-4 sm:p-6">
+    <div className="min-h-screen">
       <div className="max-w-[1600px] mx-auto">
         {/* Header Section */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
@@ -531,6 +659,12 @@ L'empire Builders
                         width: "w-28",
                         sortable: true,
                       },
+                      {
+                        key: "view_more",
+                        label: "View more",
+                        width: "w-28",
+                        sortable: true,
+                      },
                       ...(user?.role === "marketing"
                         ? [
                             {
@@ -569,27 +703,162 @@ L'empire Builders
                 </thead>
 
                 <tbody className="bg-white divide-y divide-gray-200">
+                 
                   {currentData.map((sub, i) => {
                     const globalIndex = startIndex + i + 1;
-
-                    console.log(
-                      "voice: ",
-                      sub.lead_person,
-                      sub.voice_recording?.replace(".webm", ".mp4")
-                    );
-
-
+                    
                     const voices = Array.isArray(sub.voice_recordings)
-                          ? sub.voice_recordings
-                          : sub.voice_recording
+                    ? sub.voice_recordings
+                    : sub.voice_recording
                           ? [sub.voice_recording]
                           : [];
+                  
+                    const savedRecentVoices = Array.isArray(sub.recent_recordings)
+                    ? sub.recent_recordings
+                    : sub.recent_recordings
+                          ? [sub.recent_recordings]
+                          : [];
 
+                          console.log("sub: ", submissions.find((item)=>item.id===openRecentProgress?.id), savedRecentVoices)
                     return (
-                      <tr
-                        key={sub.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
+                      <tr key={sub.id} className="hover:bg-gray-50 transition-colors" >
+                        
+                        {/* ////////////// recent progress start ////////////////// */}
+                       {/* ////////////// recent progress start ////////////////// */}
+{openRecentProgress?.id === sub?.id && (
+  <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="relative w-[92%] md:w-[600px] bg-white rounded-2xl shadow-xl flex flex-col max-h-[85dvh]" >
+
+      {/* ---------- Header ---------- */}
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div>
+          <h2 className="text-lg font-semibold">Recent Progress</h2>
+          <p className="text-xs text-gray-500">
+            {openRecentProgress?.client_name}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setOpenRecentProgress(undefined)}
+          className="text-gray-400 hover:text-black text-xl"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* ---------- Body ---------- */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+
+        {/* Remarks */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">
+            Remarks
+          </label>
+          <input
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            placeholder="Enter remarks"
+            value={formData.recent_remarks}
+            onChange={(e) =>
+              handleInputChange("recent_remarks", e.target.value)
+            }
+          />
+        </div>
+
+        {/* Local Recordings */}
+        {recentVoices.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-gray-700">
+              New Recordings
+            </h4>
+
+            {recentVoices.map((voice) => (
+              <div
+                key={voice.id}
+                className="flex items-center gap-3 bg-gray-100 rounded-lg p-3"
+              >
+                <audio controls src={voice.localUrl} className="flex-1" />
+
+                <button
+                  onClick={() =>
+                    setRecentVoices((prev) =>
+                      prev.filter((v) => v.id !== voice.id)
+                    )
+                  }
+                  className="text-red-500 text-xs hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Saved Recordings */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold text-gray-700">
+            Saved Recordings
+          </h4>
+
+          {savedRecentVoices.length > 0 ? (
+            <div className="space-y-2">
+              {savedRecentVoices.map((url, i) => (
+                <audio
+                  key={i}
+                  controls
+                  src={url}
+                  className="w-full"
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">No audio available</p>
+          )}
+        </div>
+
+        {/* Recorder */}
+        <div>
+          <VoiceRecorder
+            ref={recorderRef}
+            onRecordingComplete={(blob, localUrl) => {
+              setRecentVoices((prev) => [
+                ...prev,
+                {
+                  id: crypto.randomUUID(),
+                  blob,
+                  localUrl,
+                },
+              ]);
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ---------- Footer ---------- */}
+      <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3">
+        <button
+          onClick={() => {
+            setOpenRecentProgress(undefined)
+            setRecentVoices([])
+          }}
+          className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleUpdateRecentProgress}
+          className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900"
+        >
+          Update Progress
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+{/* ////////////// recent progress end ////////////////// */}
+
+                        {/* ////////////// recent progress end ////////////////// */}
+
                         {/* Action */}
                         {user?.role === "marketing" && (
                           <td className="px-4 py-3 whitespace-nowrap">
@@ -597,10 +866,7 @@ L'empire Builders
                               onClick={() =>
                                 handleNewYearSendMessage(sub.message_number)
                               }
-                              className="text-[#0c555e] hover:text-[#094449] font-medium text-sm underline"
-                            >
-                              Send
-                            </button>
+                              className="text-[#0c555e] hover:text-[#094449] font-medium text-sm underline">Send</button>
                           </td>
                         )}
 
@@ -774,6 +1040,16 @@ L'empire Builders
                             </span>
                           )}
                         </td>
+                     
+                        {/* View more */}
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                            <span className="inline-flex items-center px-2 cursor-pointer" onClick={ ()=> setOpenRecentProgress(sub) } >
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2.89899 12.7346C2.80091 12.5052 2.75 12.2542 2.75 12C2.75 11.7458 2.80091 11.4948 2.89899 11.2654C3.70725 9.34502 4.99868 7.72989 6.61515 6.61781C8.23161 5.50574 10.1029 4.945 12 5.00426C13.8971 4.945 15.7684 5.50574 17.3849 6.61781C19.0013 7.72989 20.2928 9.34502 21.101 11.2654C21.1991 11.4948 21.25 11.7458 21.25 12C21.25 12.2542 21.1991 12.5052 21.101 12.7346C20.2928 14.655 19.0013 16.2701 17.3849 17.3822C15.7684 18.4943 13.8971 19.055 12 18.9957C10.1029 19.055 8.23161 18.4943 6.61515 17.3822C4.99868 16.2701 3.70725 14.655 2.89899 12.7346Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </span>
+                        </td>
 
                         {/* Send Manually */}
                         {user?.role === "marketing" && (
@@ -877,630 +1153,132 @@ L'empire Builders
 
 export default Submissions;
 
-// import { useEffect, useState, useMemo } from "react";
-// import { db } from "../firebase";
-// import { collection, query, where, getDocs } from "firebase/firestore";
-// import * as XLSX from "xlsx";
-// import { useUser } from "../context/UserContext";
-// import { Download, Search } from "lucide-react";
-// import axios from "axios";
-
-// // --------------------------------------------
-// // Types
-// // --------------------------------------------
-// interface Submission {
-//   id: string;
-//   client_name: string;
-//   scope: string;
-//   starting_time: string;
-//   phone_1: string;
-//   phone_2: string;
-//   message_number: string;
-//   district: string;
-//   location: string;
-//   plot_ownership: string;
-//   plot_size: string[];
-//   project_size: string[];
-//   rooms: string[];
-//   budget: string;
-//   code: string;
-//   expo_location: string;
-//   remarks: string;
-//   special_notes: string[];
-//   createdAt: any;
-//   lead_person: string;
-//   requirment_id: string;
-//   user_id: string[];
-//   whatsapp_sent: boolean;
-//   voice_recording: string;
-//   whatsapp_sent_at: string;
-// }
-
-// const Submissions = () => {
-//   const { user } = useUser();
-
-//   const [submissions, setSubmissions] = useState<Submission[]>([]);
-//   const [loading, setLoading] = useState(true);
-
-//   const [searchTerm, setSearchTerm] = useState("");
-//   const [leadFilter, setLeadFilter] = useState("all");
-//   const [expoLocationsFilter, setExpoLocationsFilter] = useState("all");
-
-//   const [sortColumn, setSortColumn] = useState("createdAt");
-//   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-
-//   const [sendLoading, setSendLoading] = useState("");
-
-//   const itemsPerPage = 10;
-//   const [currentPage, setCurrentPage] = useState(1);
-
-//   // ------------------------------------------------
-//   // Fetch Submissions
-//   // ------------------------------------------------
-//   const fetchSubmissions = async () => {
-//     if (!user) return;
-
-//     setLoading(true);
-
-//     try {
-//       let q;
-//       if (
-//         user.role === "admin" ||
-//         user.role === "marketing" ||
-//         user.role === "sales"
-//       ) {
-//         q = query(collection(db, "submissions"));
-//       } else {
-//         q = query(
-//           collection(db, "submissions"),
-//           where("user_id", "==", user.user_id)
-//         );
-//       }
-
-//       const snapshot = await getDocs(q);
-
-//       const data: Submission[] = snapshot.docs.map((doc) => ({
-//         id: doc.id,
-//         ...doc.data(),
-//       })) as Submission[];
-
-//       setSubmissions(data);
-//     } catch (error) {
-//       console.error("Error fetching submissions:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchSubmissions();
-//   }, [user]);
-
-//   // ------------------------------------------------
-//   // Universal Search Function
-//   // ------------------------------------------------
-//   const searchInSubmission = (sub: Submission, term: string) => {
-//     const t = term.toLowerCase();
-
-//     return Object.values(sub).some((val) => {
-//       if (!val) return false;
-//       if (Array.isArray(val)) return val.join(" ").toLowerCase().includes(t);
-//       if (typeof val === "string") return val.toLowerCase().includes(t);
-//       if (typeof val === "number") return val.toString().includes(t);
-//       return false;
-//     });
-//   };
-
-//   // ------------------------------------------------
-//   // Apply Lead Filter + Search
-//   // ------------------------------------------------
-//   const filteredSubmissions = useMemo(() => {
-//     let data = [...submissions];
-
-//     if (leadFilter !== "all") {
-//       data = data.filter((sub) => sub.lead_person === leadFilter);
-//     }
-
-//     if (expoLocationsFilter !== "all") {
-//       data = data.filter((sub) => sub.expo_location === expoLocationsFilter);
-//     }
-
-//     if (searchTerm.trim() !== "") {
-//       data = data.filter((sub) => searchInSubmission(sub, searchTerm));
-//     }
-
-//     return data;
-//   }, [submissions, leadFilter, expoLocationsFilter, searchTerm]);
-
-//   // ------------------------------------------------
-//   // Sorting
-//   // ------------------------------------------------
-//   const sortedSubmissions = useMemo(() => {
-//     return [...filteredSubmissions].sort((a, b) => {
-//       let valA: any = a[sortColumn as keyof Submission];
-//       let valB: any = b[sortColumn as keyof Submission];
-
-//       if (sortColumn === "createdAt") {
-//         valA = a.createdAt?.toMillis?.() || 0;
-//         valB = b.createdAt?.toMillis?.() || 0;
-//       }
-
-//       if (typeof valA === "string") valA = valA.toLowerCase();
-//       if (typeof valB === "string") valB = valB.toLowerCase();
-
-//       if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-//       if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-//       return 0;
-//     });
-//   }, [filteredSubmissions, sortColumn, sortDirection]);
-
-//   const handleSort = (column: string) => {
-//     if (sortColumn === column) {
-//       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-//     } else {
-//       setSortColumn(column);
-//       setSortDirection("asc");
-//     }
-//   };
-
-//   // ------------------------------------------------
-//   // Pagination
-//   // ------------------------------------------------
-//   const totalPages = Math.ceil(sortedSubmissions.length / itemsPerPage);
-
-//   const startIndex = (currentPage - 1) * itemsPerPage;
-//   const currentData = sortedSubmissions.slice(
-//     startIndex,
-//     startIndex + itemsPerPage
-//   );
-
-//   useEffect(() => {
-//     setCurrentPage(1);
-//   }, [searchTerm, leadFilter]);
-
-//   // ------------------------------------------------
-//   // Excel Export
-//   // ------------------------------------------------
-//   const exportToExcel = () => {
-//     if (!sortedSubmissions.length) return;
-
-//     const exportData = sortedSubmissions.map((sub, i) => ({
-//       "SL No": i + 1,
-//       Code: sub.code,
-//       "Lead Person": sub.lead_person,
-//       Date: sub.createdAt?.toDate?.().toLocaleDateString() || "",
-//       Time: sub.createdAt?.toDate?.().toLocaleTimeString() || "",
-//       "Client Name": sub.client_name,
-//       Scope: sub.scope,
-//       "Starting Time": sub.starting_time,
-//       "Phone No": [sub.phone_1, sub.phone_2].filter(Boolean).join(" / "),
-//       District: sub.district,
-//       Location: sub.location,
-//       "Plot Size": sub.plot_size?.join(", "),
-//       "Project Size": sub.project_size?.join(", "),
-//       Remarks: sub.remarks,
-//       Rooms: sub.rooms?.join(", "),
-//       Budget: sub.budget,
-//       "Special Notes": sub.special_notes?.join(", "),
-//       "Send Message": sub.whatsapp_sent ? "Delivered" : "Pending",
-//     }));
-
-//     const ws = XLSX.utils.json_to_sheet(exportData);
-//     const wb = XLSX.utils.book_new();
-//     XLSX.utils.book_append_sheet(wb, ws, "Submissions");
-//     XLSX.writeFile(wb, "submissions.xlsx");
-//   };
-
-//   // ------------------------------------------------
-//   // WhatsApp Message Handlers
-//   // ------------------------------------------------
-//   const handleSendMessageNoTemplate = (
-//     name: string,
-//     scope: string,
-//     number: string
-//   ) => {
-//     if (user?.role !== "marketing") return;
-
-//     const lower = scope.toLowerCase();
-
-//     let message = "";
-
-//     if (lower === "just enquiry" || lower === "dealers") {
-//       message = `Hi ${name},
-// Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
-
-// It was a pleasure connecting with you. We appreciate your interest in Lempire Builders.
-
-// Warm regards,
-// L’empire Builders
-// +91 97784 11620
-// +91 97784 11609`;
-//     } else {
-//       message = `Hi ${name},
-// Thank you for visiting our stall at the Malayala Manorama Vanitha Veedu Exhibition! 🏠
-
-// We've noted your requirement regarding ${scope}.
-// Our technical team will connect with you shortly.
-
-// Warm regards,
-// L’empire Builders
-// +91 97784 11620
-// +91 97784 11609`;
-//     }
-
-//     window.open(
-//       `https://wa.me/${number}?text=${encodeURIComponent(message)}`,
-//       "_blank"
-//     );
-//   };
-
-//   //////////////////////
-//   //   const handleNewYearSendMessage = (number: string) => {
-//   //     if (user?.role !== "marketing") return;
-
-//   //     // const lower = scope.toLowerCase();
-
-//   //     const message = "";
-
-//   //     window.open(
-//   //       `https://wa.me/${number}?text=${encodeURIComponent(message)}`,
-//   //       "_blank"
-//   //     );
-//   //   };
-
-//   const handleNewYearSendMessage = (number: string) => {
-//     if (user?.role !== "marketing") return;
-
-//     console.log("No. ", number);
-
-//     const desktopUrl = `whatsapp://send?phone=${number}`;
-
-//     const webUrl = `https://wa.me/${number}`;
-
-//     window.location.href = desktopUrl;
-
-//     setTimeout(() => {
-//       window.open(webUrl, "_blank");
-//     }, 800);
-//   };
-
-//   //////////////////////
-
-//   const handleSendMessage = async (docId: string) => {
-//     if (user?.role !== "marketing") return;
-
-//     setSendLoading(docId);
-
-//     await axios.post(
-//       "https://asia-south1-vanitha-veed.cloudfunctions.net/sendWhatsAppMessage",
-//       { docId }
-//     );
-
-//     alert("WhatsApp message sent manually");
-//     setSendLoading("");
-//   };
-
-//   // ------------------------------------------------
-//   // Render
-//   // ------------------------------------------------
-//   if (!user)
-//     return <p className="mt-10 text-center text-gray-500">Loading user...</p>;
-//   if (loading)
-//     return (
-//       <p className="mt-10 text-center text-gray-500">Loading submissions...</p>
-//     );
-
-//   // Collect unique lead persons
-//   const uniqueLeads = [...new Set(submissions.map((s) => s.lead_person))];
-//   const expoLocations = [...new Set(submissions.map((s) => s.expo_location))];
-
-//   const getPageNumbers = () => {
-//     const pages: (number | string)[] = [];
-//     const siblingCount = 2;
-
-//     const start = Math.max(2, currentPage - siblingCount);
-//     const end = Math.min(totalPages - 1, currentPage + siblingCount);
-
-//     // First page
-//     pages.push(1);
-
-//     // Left ellipsis
-//     if (start > 2) {
-//       pages.push("...");
-//     }
-
-//     // Middle pages
-//     for (let i = start; i <= end; i++) {
-//       pages.push(i);
-//     }
-
-//     // Right ellipsis
-//     if (end < totalPages - 1) {
-//       pages.push("...");
-//     }
-
-//     // Last page
-//     if (totalPages > 1) {
-//       pages.push(totalPages);
-//     }
-
-//     return pages;
-//   };
-
-//   return (
-//     <div className="py-6 mx-auto">
-//       {/* Header Section */}
-//       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-//         <h2 className="text-3xl font-semibold text-[#0c555e]">
-//           Your Submissions
-//         </h2>
-
-//         <div className="flex flex-wrap gap-3 items-center">
-//           {/* Search */}
-//           <div className="relative">
-//             <Search className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-//             <input
-//               type="search"
-//               placeholder="Search anything..."
-//               className="pl-9 pr-3 py-2 border rounded-md shadow-sm w-60 focus:ring-2 focus:ring-[#0c555e]"
-//               value={searchTerm}
-//               onChange={(e) => setSearchTerm(e.target.value)}
-//             />
+// {/* ////////////// recent progress start ////////////////// */}
+// {openRecentProgress?.id === sub?.id && (
+//   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+//     <div className="relative w-[92%] md:w-[600px] bg-white rounded-2xl shadow-xl flex flex-col max-h-[85dvh]">
+
+//       {/* ---------- Header ---------- */}
+//       <div className="flex items-center justify-between px-6 py-4 border-b">
+//         <div>
+//           <h2 className="text-lg font-semibold">Recent Progress</h2>
+//           <p className="text-xs text-gray-500">
+//             {openRecentProgress?.client_name}
+//           </p>
+//         </div>
+
+//         <button
+//           onClick={() => setOpenRecentProgress(null)}
+//           className="text-gray-400 hover:text-black text-xl"
+//         >
+//           ✕
+//         </button>
+//       </div>
+
+//       {/* ---------- Body ---------- */}
+//       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+
+//         {/* Remarks */}
+//         <div className="space-y-1">
+//           <label className="text-sm font-medium text-gray-700">
+//             Remarks
+//           </label>
+//           <input
+//             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+//             placeholder="Enter remarks"
+//             value={formData.recent_remarks}
+//             onChange={(e) =>
+//               handleInputChange("recent_remarks", e.target.value)
+//             }
+//           />
+//         </div>
+
+//         {/* Local Recordings */}
+//         {recentVoices.length > 0 && (
+//           <div className="space-y-2">
+//             <h4 className="text-sm font-semibold text-gray-700">
+//               New Recordings
+//             </h4>
+
+//             {recentVoices.map((voice) => (
+//               <div
+//                 key={voice.id}
+//                 className="flex items-center gap-3 bg-gray-100 rounded-lg p-3"
+//               >
+//                 <audio controls src={voice.localUrl} className="flex-1" />
+
+//                 <button
+//                   onClick={() =>
+//                     setRecentVoices((prev) =>
+//                       prev.filter((v) => v.id !== voice.id)
+//                     )
+//                   }
+//                   className="text-red-500 text-xs hover:underline"
+//                 >
+//                   Delete
+//                 </button>
+//               </div>
+//             ))}
 //           </div>
+//         )}
 
-//           {/* Lead Filter Dropdown */}
-//           <select
-//             className="border px-3 py-2 rounded-md shadow-sm"
-//             value={leadFilter}
-//             onChange={(e) => setLeadFilter(e.target.value)}
-//           >
-//             <option value="all">All Leads</option>
-//             {uniqueLeads.map((lead) => (
-//               <option key={lead} value={lead}>
-//                 {lead}
-//               </option>
-//             ))}
-//           </select>
+//         {/* Saved Recordings */}
+//         <div className="space-y-2">
+//           <h4 className="text-sm font-semibold text-gray-700">
+//             Saved Recordings
+//           </h4>
 
-//           {/* Expo locations Filter Dropdown */}
-//           <select
-//             className="border px-3 py-2 rounded-md shadow-sm"
-//             value={expoLocationsFilter}
-//             onChange={(e) => setExpoLocationsFilter(e.target.value)}
-//           >
-//             <option value="all">All Expo</option>
-//             {expoLocations.map((expo) => (
-//               <option key={expo} value={expo}>
-//                 {expo}
-//               </option>
-//             ))}
-//           </select>
+//           {recentVoicess.length > 0 ? (
+//             <div className="space-y-2">
+//               {recentVoicess.map((url, i) => (
+//                 <audio
+//                   key={i}
+//                   controls
+//                   src={url}
+//                   className="w-full"
+//                 />
+//               ))}
+//             </div>
+//           ) : (
+//             <p className="text-xs text-gray-400">No audio available</p>
+//           )}
+//         </div>
 
-//           {/* Export Button */}
-//           <button
-//             onClick={exportToExcel}
-//             className="flex items-center gap-2 bg-[#0c555e] hover:bg-[#11717b] text-white px-4 py-2 rounded-lg"
-//           >
-//             <Download className="w-4 h-4" />
-//             Export
-//           </button>
+//         {/* Recorder */}
+//         <div>
+//           <VoiceRecorder
+//             ref={recorderRef}
+//             onRecordingComplete={(blob, localUrl) => {
+//               setRecentVoices((prev) => [
+//                 ...prev,
+//                 {
+//                   id: crypto.randomUUID(),
+//                   blob,
+//                   localUrl,
+//                 },
+//               ]);
+//             }}
+//           />
 //         </div>
 //       </div>
 
-//       {/* Table */}
-//       <div className="bg-white border shadow-lg rounded-md overflow-hidden">
-//         <div className="overflow-x-auto">
-//           <table className="min-w-full border-collapse">
-//             {/* Table Head */}
-//             <thead className="bg-[#0c555e] text-white sticky top-0 text-sm">
-//               <tr>
-//                 {[
-//                   { key: "manual_message", label: "Manual Message" },
-//                   { key: "sl", label: "SL No" },
-//                   { key: "scope", label: "Scope" },
-//                   { key: "code", label: "Code" },
-//                   { key: "expo_location", label: "Expo Location" },
-//                   { key: "lead_person", label: "Lead Person" },
-//                   { key: "createdAt", label: "Date" },
-//                   { key: "createdAt", label: "Time" },
-//                   { key: "client_name", label: "Client Name" },
-//                   { key: "starting_time", label: "Starting Time" },
-//                   { key: "phone_1", label: "Phone No" },
-//                   { key: "district", label: "District" },
-//                   { key: "location", label: "Location" },
-//                   { key: "plot_size", label: "Plot Size" },
-//                   { key: "project_size", label: "Project Size" },
-//                   { key: "remarks", label: "Remarks" },
-//                   { key: "rooms", label: "Rooms" },
-//                   { key: "budget", label: "Budget" },
-//                   { key: "special_notes", label: "Special Notes" },
-//                   { key: "voice_recording", label: "Voice Recording" },
-//                   { key: "whatsapp_sent", label: "Send Message" },
-//                   ...(user?.role === "marketing"
-//                     ? [{ key: "send", label: "Send Manually" }]
-//                     : []),
-//                 ].map((col) => (
-//                   <th
-//                     key={col.label}
-//                     className="px-4 py-3 border cursor-pointer select-none"
-//                     onClick={() =>
-//                       col.key !== "sl" &&
-//                       col.key !== "send" &&
-//                       handleSort(col.key)
-//                     }
-//                   >
-//                     <div className="flex items-center gap-1">
-//                       {col.label}
-//                       {sortColumn === col.key && (
-//                         <span className="text-xs">
-//                           {sortDirection === "asc" ? "▲" : "▼"}
-//                         </span>
-//                       )}
-//                     </div>
-//                   </th>
-//                 ))}
-//               </tr>
-//             </thead>
+//       {/* ---------- Footer ---------- */}
+//       <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3">
+//         <button
+//           onClick={() => setOpenRecentProgress(null)}
+//           className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100"
+//         >
+//           Cancel
+//         </button>
 
-//             {/* Table Body */}
-//             <tbody className="text-sm">
-//               {currentData.map((sub, i) => {
-//                 const globalIndex = startIndex + i + 1;
-
-//                 return (
-//                   <tr key={sub.id} className="border-b hover:bg-gray-50">
-//                     {user?.role === "marketing" && (
-//                       <td className="px-4 py-2 text-nowrap">
-//                         <button
-//                           onClick={() =>
-//                             handleNewYearSendMessage(sub.message_number)
-//                           }
-//                           className="text-[#0c555e] underline font-semibold hover:text-[#11717b]"
-//                         >
-//                           Send
-//                         </button>
-//                       </td>
-//                     )}
-//                     {/* SL NO */}
-//                     <td className="px-4 py-2 text-nowrap">{globalIndex}</td>
-//                     <td className="px-4 py-2 text-nowrap">{sub.scope}</td>
-
-//                     <td className="px-4 py-2 text-nowrap">{sub.code}</td>
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.expo_location}
-//                     </td>
-//                     <td className="px-4 py-2 text-nowrap">{sub.lead_person}</td>
-
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.createdAt?.toDate().toLocaleDateString()}
-//                     </td>
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.createdAt?.toDate().toLocaleTimeString()}
-//                     </td>
-
-//                     <td className="px-4 py-2 font-semibold">
-//                       {sub.client_name}
-//                     </td>
-//                     {/* <td className="px-4 py-2 text-nowrap">{sub.scope}</td> */}
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.starting_time}
-//                     </td>
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {[sub.phone_1, sub.phone_2].filter(Boolean).join(", ")}
-//                     </td>
-//                     <td className="px-4 py-2 text-nowrap">{sub.district}</td>
-//                     <td className="px-4 py-2 text-nowrap">{sub.location}</td>
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.plot_size?.join(", ")}
-//                     </td>
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.project_size?.join(", ")}
-//                     </td>
-//                     <td className="px-4 py-2 text-nowrap">{sub.remarks}</td>
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.rooms?.join(", ")}
-//                     </td>
-//                     <td className="px-4 py-2 text-nowrap">{sub.budget}</td>
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.special_notes?.join(", ")}
-//                     </td>
-
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.voice_recording ? (
-//                         <audio
-//                           controls
-//                           src={sub.voice_recording}
-//                           className="w-full"
-//                         />
-//                       ) : (
-//                         <span className="text-gray-600 text-xs bg-gray-100 px-2 py-1 rounded-full">
-//                           No Audio
-//                         </span>
-//                       )}
-//                     </td>
-//                     {/* Send Message Column */}
-//                     <td className="px-4 py-2 text-nowrap">
-//                       {sub.whatsapp_sent ? (
-//                         <span className="text-green-600 font-semibold">
-//                           Delivered
-//                         </span>
-//                       ) : (
-//                         <span className="text-red-600 font-semibold">
-//                           Pending
-//                         </span>
-//                       )}
-//                     </td>
-//                     {/* Marketing Manual Send */}
-//                     {user?.role === "marketing" && (
-//                       <td className="px-4 py-2 text-nowrap">
-//                         {sendLoading === sub.id ? (
-//                           <span className="text-blue-600 font-medium">
-//                             Sending...
-//                           </span>
-//                         ) : (
-//                           <button
-//                             onClick={() =>
-//                               sub.scope === "Just enquiry" ||
-//                               sub.scope === "Dealers"
-//                                 ? handleSendMessageNoTemplate(
-//                                     sub.client_name,
-//                                     sub.scope,
-//                                     sub.message_number
-//                                   )
-//                                 : handleSendMessage(sub.id)
-//                             }
-//                             className="text-[#0c555e] underline font-semibold hover:text-[#11717b]"
-//                           >
-//                             Send
-//                           </button>
-//                         )}
-//                       </td>
-//                     )}
-//                   </tr>
-//                 );
-//               })}
-//             </tbody>
-//           </table>
-
-//           {/* Pagination */}
-//           <div className="flex justify-end items-center gap-2 mt-4 mb-4">
-//             <button
-//               disabled={currentPage === 1}
-//               onClick={() => setCurrentPage((p) => p - 1)}
-//               className="px-3 py-1 border rounded disabled:opacity-50"
-//             >
-//               Prev
-//             </button>
-
-//             {getPageNumbers().map((page, index) =>
-//               page === "..." ? (
-//                 <span key={`dots-${index}`} className="px-2 text-gray-500">
-//                   ...
-//                 </span>
-//               ) : (
-//                 <button
-//                   key={page}
-//                   onClick={() => setCurrentPage(page)}
-//                   className={`px-3 py-1 border rounded
-//           ${currentPage === page ? "bg-black text-white" : ""}`}
-//                 >
-//                   {page}
-//                 </button>
-//               )
-//             )}
-
-//             <button
-//               disabled={currentPage === totalPages}
-//               onClick={() => setCurrentPage((p) => p + 1)}
-//               className="px-3 py-1 border rounded disabled:opacity-50"
-//             >
-//               Next
-//             </button>
-//           </div>
-//         </div>
+//         <button
+//           onClick={handleUpdateRecentProgress}
+//           className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900"
+//         >
+//           Update Progress
+//         </button>
 //       </div>
 //     </div>
-//   );
-// };
-
-// export default Submissions;
+//   </div>
+// )}
+// {/* ////////////// recent progress end ////////////////// */}

@@ -24,7 +24,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 // import VoiceRecorder from "../Components/VoiceRecorder";
 
 
-type VoiceItem = {
+export type VoiceItem = {
   id: string;
   blob: Blob;
   localUrl: string;
@@ -544,7 +544,7 @@ setVoiceUrl(null); // optional
           />
         </div>
 
-            <VoiceRecorder
+        <VoiceRecorder
           ref={recorderRef}
           onRecordingComplete={(blob, localUrl) => {
             setVoices((prev) => [
@@ -557,27 +557,28 @@ setVoiceUrl(null); // optional
             ]);
           }}
         />
-{voices.length > 0 && (
-  <div className="flex flex-col gap-3 mt-4">
-    {voices.map((voice) => (
-      <div
-        key={voice.id}
-        className="flex items-center gap-3 bg-gray-100 p-3 rounded-lg"
-      >
-        <audio controls src={voice.localUrl} className="flex-1" />
 
-        <button
-          onClick={() =>
-            setVoices((prev) => prev.filter((v) => v.id !== voice.id))
-          }
-          className="text-red-600 text-sm hover:underline"
-        >
-          Delete
-        </button>
-      </div>
-    ))}
-  </div>
-)}
+        {voices.length > 0 && (
+          <div className="flex flex-col gap-3 mt-4">
+            {voices.map((voice) => (
+              <div
+                key={voice.id}
+                className="flex items-center gap-3 bg-gray-100 p-3 rounded-lg"
+              >
+                <audio controls src={voice.localUrl} className="flex-1" />
+
+                <button
+                  onClick={() =>
+                    setVoices((prev) => prev.filter((v) => v.id !== voice.id))
+                  }
+                  className="text-red-600 text-sm hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* <VoiceRecorder onRecordingComplete={(blob) => setVoiceBlob(blob)} /> */}
 
