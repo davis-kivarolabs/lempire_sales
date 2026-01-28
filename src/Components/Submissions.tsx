@@ -35,6 +35,7 @@ interface Submission {
   remarks: string;
   special_notes: string[];
   createdAt: any;
+  updatedAt: any;
   lead_person: string;
   requirment_id: string;
   user_id: string[];
@@ -369,6 +370,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
     ...prev,
     recent_remarks: ""
     }));
+    setIsRemarksEdit(false)
   }
 };
 
@@ -419,9 +421,6 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
 
     setRecentVoices([]);
     setOpenRecentProgress(undefined);
-
-    setRecentVoices([]);
-    setOpenRecentProgress(undefined);
   };
 
 
@@ -440,6 +439,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
       [key]: value,
     }));
   };
+  const [isRemarksEdit, setIsRemarksEdit] = useState(false)
   //////////// more details end //////////////
   
   // if (!user) {
@@ -732,10 +732,24 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                   <p className="text-xs text-gray-500">
                                     {openRecentProgress?.client_name}
                                   </p>
+                                  <p className="text-xs text-gray-500">
+                                    Last updated:{" "}
+                                    {openRecentProgress?.updatedAt &&
+                                      openRecentProgress.updatedAt
+                                        .toDate()
+                                        .toLocaleDateString("en-US", {
+                                          year: "numeric",
+                                          month: "long",
+                                          day: "numeric",
+                                        })}
+                                  </p>
                                 </div>
 
                                 <button
-                                  onClick={() => setOpenRecentProgress(undefined)}
+                                  onClick={() => {
+                                    setOpenRecentProgress(undefined)
+                                    setIsRemarksEdit(false)
+                                  }}
                                   className="text-gray-400 hover:text-black text-xl"
                                 >
                                   ✕
@@ -746,27 +760,34 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                               <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
 
                                 {/* Remarks */}
-                                <div className="space-y-1">
-                                  <label className="text-sm font-medium text-gray-700">
-                                    Remarks
-                                  </label>
-                                  <input
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                                    placeholder="Enter remarks"
-                                    value={formData.recent_remarks}
-                                    onChange={(e) =>
-                                      handleInputChange("recent_remarks", e.target.value)
-                                    }
-                                  />
-                                </div>
-                                  <p>{sub.recent_remarks}</p>
+                                 {(sub.recent_remarks && !isRemarksEdit) ? null : <div className="space-y-1">
+                                  <label className="text-sm font-medium text-gray-700">Remarks</label>
+                                  
+                                  <div className="flex gap-2" >
+                                    <input
+                                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                                      placeholder="Enter remarks"
+                                      value={formData.recent_remarks}
+                                      onChange={(e) =>
+                                        handleInputChange("recent_remarks", e.target.value)
+                                      }
+                                      />
+                                    <button className="px-2 border-[1px] rounded-[8px] cursor-pointer" onClick={()=>{
+                                      setIsRemarksEdit(false)
+                                    }} >Cancel</button>
+                                  </div>
+                                
+                                </div>}
+                                {!isRemarksEdit && <div className="flex gap-2" >
+                                  <p>{sub.recent_remarks}</p> <button className="px-1 text-[12px] text-[blue] cursor-pointer" onClick={()=>{setIsRemarksEdit(true)
+                                    handleInputChange("recent_remarks", sub.recent_remarks || "")
+                                  }} >Edit</button>
+                                </div>}
 
                                 {/* Local Recordings */}
                                 {recentVoices.length > 0 && (
-                                  <div className="space-y-2">
-                                    <h4 className="text-sm font-semibold text-gray-700">
-                                      New Recordings
-                                    </h4>
+                                  <div className="space-y-2" >
+                                    <h4 className="text-sm font-semibold text-gray-700">New Recordings</h4>
 
                                     {recentVoices.map((voice) => (
                                       <div
@@ -833,12 +854,14 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                               {/* ---------- Footer ---------- */}
                               <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3">
                                 <button
+                                  disabled={!formData.recent_remarks || recentVoices.length < 1}
                                   onClick={() => {
                                     setOpenRecentProgress(undefined)
                                     setRecentVoices([])
+                                    setIsRemarksEdit(false)
                                   }} className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100" >Cancel</button>
 
-                                <button onClick={handleUpdateRecentProgress} className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900" >
+                                <button disabled={!formData.recent_remarks || recentVoices.length > 0} onClick={handleUpdateRecentProgress} className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900" >
                                   {updateLoading ? "Updating" : "Update Progress"}
                                 </button>
                               </div>
