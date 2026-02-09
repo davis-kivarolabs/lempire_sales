@@ -109,10 +109,6 @@ const Submissions = () => {
     }
   };
 
-
-
-
-
   const searchInSubmission = (sub: any, term: string) => {
     const t = term.toLowerCase();
     return Object.values(sub).some((val) => {
@@ -335,6 +331,7 @@ L'empire Builders
 const [updateLoading, setUpdateLoading] = useState(false);
 const updateRecentProgress = async ( submissionId: string, remarks: string, voices: { blob: Blob; id: string }[], userId: string ) => {
   setUpdateLoading(true);
+  console.log("abcd", submissionId, remarks, voices, userId)
 
   try {
     const uploadedVoiceURLs: string[] = [];
@@ -375,38 +372,10 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
 };
 
   useEffect(() => {
-    fetchSubmissions();
+    if(user && !updateLoading){
+      fetchSubmissions();
+    }
   }, [user, updateLoading]);
-
-
-// const updateRecentProgress = async ( submissionId: string,remarks: string,voices: { blob: Blob; id: string }[],userId: string ) => {
-//   const uploadedVoiceURLs: string[] = [];
-
-//   // upload voices (SAME pattern as first submission)
-//   for (const voice of voices) {
-//     const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
-
-//     const fileRef = ref(
-//       storage,
-//       `submission_voices/${submissionId}/${userId}-${Date.now()}-${voice.id}.${ext}`
-//     );
-
-//     await uploadBytes(fileRef, voice.blob);
-//     const url = await getDownloadURL(fileRef);
-
-//     uploadedVoiceURLs.push(url);
-//   }
-
-//   // update firestore (APPEND, not overwrite)
-//   const submissionRef = doc(db, "submissions", submissionId);
-
-//   await updateDoc(submissionRef, {
-//     recent_remarks: remarks,
-//     recent_recordings: arrayUnion(...uploadedVoiceURLs),
-//     updatedAt: serverTimestamp(),
-//   });
-// };
-
 
   const handleUpdateRecentProgress = async () => {
     if (!openRecentProgress?.id) return;
@@ -487,11 +456,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
               </div>
 
               {/* Filters */}
-              <select
-                className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#0c555e] focus:border-transparent bg-white"
-                value={leadFilter}
-                onChange={(e) => setLeadFilter(e.target.value)}
-              >
+              <select className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-[#0c555e] focus:border-transparent bg-white" value={leadFilter} onChange={(e) => setLeadFilter(e.target.value)} >
                 <option value="all">All Leads</option>
                 {uniqueLeads.map((lead) => (
                   <option key={lead} value={lead}>
@@ -732,7 +697,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                   <p className="text-xs text-gray-500">
                                     {openRecentProgress?.client_name}
                                   </p>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-500" >
                                     Last updated:{" "}
                                     {openRecentProgress?.updatedAt &&
                                       openRecentProgress.updatedAt
@@ -768,12 +733,10 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                                       placeholder="Enter remarks"
                                       value={formData.recent_remarks}
-                                      onChange={(e) =>
-                                        handleInputChange("recent_remarks", e.target.value)
-                                      }
-                                      />
+                                      onChange={(e) => handleInputChange("recent_remarks", e.target.value) } />
                                     <button className="px-2 border-[1px] rounded-[8px] cursor-pointer" onClick={()=>{
-                                      setIsRemarksEdit(false)
+                                      setIsRemarksEdit(false);
+                                      setOpenRecentProgress(undefined);
                                     }} >Cancel</button>
                                   </div>
                                 
@@ -802,8 +765,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                               prev.filter((v) => v.id !== voice.id)
                                             )
                                           }
-                                          className="text-red-500 text-xs hover:underline"
-                                        >
+                                          className="text-red-500 text-xs hover:underline" >
                                           Delete
                                         </button>
                                       </div>
@@ -813,9 +775,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
 
                                 {/* Saved Recordings */}
                                 <div className="space-y-2">
-                                  <h4 className="text-sm font-semibold text-gray-700">
-                                    Saved Recordings
-                                  </h4>
+                                  <h4 className="text-sm font-semibold text-gray-700">Saved Recordings</h4>
 
                                   {savedRecentVoices.length > 0 ? (
                                     <div className="space-y-2">
@@ -861,7 +821,8 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                     setIsRemarksEdit(false)
                                   }} className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100" >Cancel</button>
 
-                                <button disabled={!formData.recent_remarks || recentVoices.length > 0} onClick={handleUpdateRecentProgress} className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900" >
+                                {/* <button disabled={!formData.recent_remarks || recentVoices.length > 0} onClick={handleUpdateRecentProgress} className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900" > */}
+                                <button onClick={handleUpdateRecentProgress} className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900" >
                                   {updateLoading ? "Updating" : "Update Progress"}
                                 </button>
                               </div>
@@ -1029,7 +990,6 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                         ) : (
                           <span className="text-gray-400 text-xs">No Audio</span>
                         )}
-
                           {/* {sub.voice_recording ? (
                             <audio
                               controls
@@ -1061,8 +1021,8 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
                             <span className="inline-flex items-center px-2 cursor-pointer" onClick={ ()=> setOpenRecentProgress(sub) } >
                               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2.89899 12.7346C2.80091 12.5052 2.75 12.2542 2.75 12C2.75 11.7458 2.80091 11.4948 2.89899 11.2654C3.70725 9.34502 4.99868 7.72989 6.61515 6.61781C8.23161 5.50574 10.1029 4.945 12 5.00426C13.8971 4.945 15.7684 5.50574 17.3849 6.61781C19.0013 7.72989 20.2928 9.34502 21.101 11.2654C21.1991 11.4948 21.25 11.7458 21.25 12C21.25 12.2542 21.1991 12.5052 21.101 12.7346C20.2928 14.655 19.0013 16.2701 17.3849 17.3822C15.7684 18.4943 13.8971 19.055 12 18.9957C10.1029 19.055 8.23161 18.4943 6.61515 17.3822C4.99868 16.2701 3.70725 14.655 2.89899 12.7346Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M2.89899 12.7346C2.80091 12.5052 2.75 12.2542 2.75 12C2.75 11.7458 2.80091 11.4948 2.89899 11.2654C3.70725 9.34502 4.99868 7.72989 6.61515 6.61781C8.23161 5.50574 10.1029 4.945 12 5.00426C13.8971 4.945 15.7684 5.50574 17.3849 6.61781C19.0013 7.72989 20.2928 9.34502 21.101 11.2654C21.1991 11.4948 21.25 11.7458 21.25 12C21.25 12.2542 21.1991 12.5052 21.101 12.7346C20.2928 14.655 19.0013 16.2701 17.3849 17.3822C15.7684 18.4943 13.8971 19.055 12 18.9957C10.1029 19.055 8.23161 18.4943 6.61515 17.3822C4.99868 16.2701 3.70725 14.655 2.89899 12.7346Z" stroke={`${ (sub.recent_remarks || sub?.recent_recordings?.length && sub?.recent_recordings?.length > 0) ? "blue" : "currentColor" }`} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M12 15.5C13.933 15.5 15.5 13.933 15.5 12C15.5 10.067 13.933 8.5 12 8.5C10.067 8.5 8.5 10.067 8.5 12C8.5 13.933 10.067 15.5 12 15.5Z" stroke={`${ (sub.recent_remarks || sub?.recent_recordings?.length && sub?.recent_recordings?.length > 0) ? "blue" : "currentColor" }`} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                               </svg>
                             </span>
                         </td>
@@ -1093,7 +1053,8 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                             )}
                           </td>
                         )}
-                      </tr>}
+                      </tr>
+                      }
                       </>
                     );
                   })}
@@ -1119,28 +1080,15 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Previous
-                </button>
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}
+                  className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" >Previous</button>
 
                 <div className="flex gap-1">
                   {getPageNumbers().map((page, index) =>
                     page === "..." ? (
-                      <span
-                        key={`dots-${index}`}
-                        className="px-3 py-2 text-gray-500"
-                      >
-                        ...
-                      </span>
+                      <span key={`dots-${index}`} className="px-3 py-2 text-gray-500" >...</span>
                     ) : (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page as number)}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      <button key={page} onClick={() => setCurrentPage(page as number)} className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                           currentPage === page
                             ? "bg-[#0c555e] text-white"
                             : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
