@@ -120,6 +120,7 @@ const Submissions = () => {
     });
   };
 
+  const [recentUpdatesOnly, setRecentUpdatesOnly] = useState(false)
   const filteredSubmissions = useMemo(() => {
     let data = [...submissions];
     if (leadFilter !== "all") {
@@ -131,8 +132,11 @@ const Submissions = () => {
     if (searchTerm.trim() !== "") {
       data = data.filter((sub) => searchInSubmission(sub, searchTerm));
     }
+    if (recentUpdatesOnly) {
+      data = data.filter((sub) => sub.recent_remarks || sub.recent_recordings && sub.recent_recordings.length > 0 );
+    }
     return data;
-  }, [submissions, leadFilter, expoLocationsFilter, searchTerm]);
+  }, [submissions, leadFilter, expoLocationsFilter, searchTerm, recentUpdatesOnly]);
 
   const sortedSubmissions = useMemo(() => {
     return [...filteredSubmissions].sort((a, b) => {
@@ -340,10 +344,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
     for (const voice of voices) {
       const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
 
-      const fileRef = ref(
-        storage,
-        `submission_voices/${submissionId}/${userId}-${Date.now()}-${voice.id}.${ext}`
-      );
+      const fileRef = ref(storage,`submission_voices/${submissionId}/${userId}-${Date.now()}-${voice.id}.${ext}`);
 
       await uploadBytes(fileRef, voice.blob);
       const url = await getDownloadURL(fileRef);
@@ -444,12 +445,39 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
         {/* Header Section */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* <button onClick={() => setRecentUpdatesOnly((prev) => !prev)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 
+                ${recentUpdatesOnly ? "bg-[#0c555e]" : "bg-gray-300"}`} >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300
+                  ${recentUpdatesOnly ? "translate-x-5" : "translate-x-1"}`}
+              />
+            </button> */}
+
+
             <h2 className="text-2xl sm:text-3xl font-bold text-[#0c555e]">
               Your Submissions
               <span className="ml-3 text-sm font-normal text-gray-500">
                 ({sortedSubmissions.length} results)
               </span>
             </h2>
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-700">
+                Recent updates only
+              </span>
+
+              <button
+                role="switch"
+                aria-checked={recentUpdatesOnly}
+                onClick={() => setRecentUpdatesOnly((prev) => !prev)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-300
+                  ${recentUpdatesOnly ? "bg-[#0c555e]" : "bg-gray-300"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300
+                    ${recentUpdatesOnly ? "translate-x-4" : "translate-x-1"}`} />
+              </button>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
               {/* Search */}
@@ -746,7 +774,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                       onChange={(e) => handleInputChange("recent_remarks", e.target.value) } />
                                     <button className="px-2 border-[1px] rounded-[8px] cursor-pointer" onClick={()=>{
                                       setIsRemarksEdit(false);
-                                       clearRecentRemarks()
+                                       clearRecentRemarks();
                                       // setOpenRecentProgress(undefined);
                                     }} >Cancel</button>
                                   </div>
@@ -846,7 +874,8 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                      <div className="flex items-center justify-center min-h-screen">
                       <div className="text-gray-500">Loading submissions...</div>
                      </div>
-                     : <tr key={sub.id} className="hover:bg-gray-50 transition-colors" >
+                    //  : <tr key={sub.id} className={`${sub.recent_remarks || sub?.recent_recordings && sub?.recent_recordings?.length > 0 ? "bg-[red]" : ""} hover:bg-gray-50 transition-colors`}>
+                     : <tr key={sub.id} className={`hover:bg-gray-50 transition-colors`}>
 
                         {/* Action */}
                         {user?.role === "marketing" && (
@@ -896,7 +925,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                         </td>
 
                         {/* Client Name */}
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900" >
                           {sub.client_name}
                         </td>
 
