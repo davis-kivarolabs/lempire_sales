@@ -402,6 +402,15 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
     recent_remarks: ""
   });
 
+
+  const clearRecentRemarks = () => {
+  setFormData((prev) => ({
+      ...prev,
+      recent_remarks: "",
+    }));
+  };
+
+
   const handleInputChange = (key: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -714,6 +723,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                   onClick={() => {
                                     setOpenRecentProgress(undefined)
                                     setIsRemarksEdit(false)
+                                    clearRecentRemarks()
                                   }}
                                   className="text-gray-400 hover:text-black text-xl"
                                 >
@@ -736,12 +746,13 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                       onChange={(e) => handleInputChange("recent_remarks", e.target.value) } />
                                     <button className="px-2 border-[1px] rounded-[8px] cursor-pointer" onClick={()=>{
                                       setIsRemarksEdit(false);
-                                      setOpenRecentProgress(undefined);
+                                       clearRecentRemarks()
+                                      // setOpenRecentProgress(undefined);
                                     }} >Cancel</button>
                                   </div>
                                 
                                 </div>}
-                                {!isRemarksEdit && <div className="flex gap-2" >
+                                {isRemarksEdit && <div className="flex gap-2" >
                                   <p>{sub.recent_remarks}</p> <button className="px-1 text-[12px] text-[blue] cursor-pointer" onClick={()=>{setIsRemarksEdit(true)
                                     handleInputChange("recent_remarks", sub.recent_remarks || "")
                                   }} >Edit</button>
@@ -814,11 +825,12 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                               {/* ---------- Footer ---------- */}
                               <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end gap-3">
                                 <button
-                                  disabled={!formData.recent_remarks || recentVoices.length < 1}
+                                  // disabled={!formData.recent_remarks || recentVoices.length < 1}
                                   onClick={() => {
                                     setOpenRecentProgress(undefined)
                                     setRecentVoices([])
                                     setIsRemarksEdit(false)
+                                    clearRecentRemarks()
                                   }} className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100" >Cancel</button>
 
                                 {/* <button disabled={!formData.recent_remarks || recentVoices.length > 0} onClick={handleUpdateRecentProgress} className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-900" > */}
