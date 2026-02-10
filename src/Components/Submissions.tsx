@@ -780,7 +780,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                   </div>
                                 
                                 </div>}
-                                {isRemarksEdit && <div className="flex gap-2" >
+                                {!isRemarksEdit && <div className="flex gap-2" >
                                   <p>{sub.recent_remarks}</p> <button className="px-1 text-[12px] text-[blue] cursor-pointer" onClick={()=>{setIsRemarksEdit(true)
                                     handleInputChange("recent_remarks", sub.recent_remarks || "")
                                   }} >Edit</button>
