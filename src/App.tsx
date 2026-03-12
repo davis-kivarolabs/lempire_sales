@@ -10,6 +10,7 @@ import RequirmentsForm from "./pages/RequirmentsForm";
 import { UserProvider } from "./context/UserContext";
 import Header from "./Components/Header";
 import Submissions from "./Components/Submissions";
+import LeadsPage from "./pages/LeadsPage/LeadsPage";
 // import ChangePassword from "./Components/ChangePassword";
 
 export default function App() {
@@ -32,6 +33,15 @@ export default function App() {
               element={
                 <PrivateRoute>
                   <Submissions />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/parppidam-expo-offer-leads"
+              element={
+                <PrivateRoute>
+                  <LeadsPage />
                 </PrivateRoute>
               }
             />

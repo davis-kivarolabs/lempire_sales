@@ -774,7 +774,7 @@ const updateRecentProgress = async ( submissionId: string, remarks: string, voic
                                       onChange={(e) => handleInputChange("recent_remarks", e.target.value) } />
                                     <button className="px-2 border-[1px] rounded-[8px] cursor-pointer" onClick={()=>{
                                       setIsRemarksEdit(false);
-                                       clearRecentRemarks();
+                                      clearRecentRemarks();
                                       // setOpenRecentProgress(undefined);
                                     }} >Cancel</button>
                                   </div>
