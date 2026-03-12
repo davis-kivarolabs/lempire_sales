@@ -34,7 +34,7 @@ const RequirmentsForm = () => {
   const { user } = useUser();
 
 
-const [voices, setVoices] = useState<VoiceItem[]>([]);
+  const [voices, setVoices] = useState<VoiceItem[]>([]);
 
 
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
@@ -58,7 +58,7 @@ const [voices, setVoices] = useState<VoiceItem[]>([]);
     rooms: [] as string[],
     budget: "",
     remarks: "",
-    expo_location: "kottayam",
+    expo_location: "Parppidam 2026",
     special_notes: [] as string[],
     // color: [] as string[],
   });
@@ -69,7 +69,7 @@ const [voices, setVoices] = useState<VoiceItem[]>([]);
   const handleSelectChange = (key: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
-      expo_location: "kottayam",
+      expo_location: "Parppidam 2026",
       [key]: value.map((v: any) => v.value),
     }));
   };
@@ -121,26 +121,26 @@ const [voices, setVoices] = useState<VoiceItem[]>([]);
     if (!Array.isArray(special_notes) || special_notes.length === 0)
       return setErrorMessage("Please add at least one special note.");
 
-const uploadedVoiceURLs: string[] = [];
+    const uploadedVoiceURLs: string[] = [];
 
     setSubmitLoading(true);
     try {
       setUploading(true);
 
-  for (const voice of voices) {
-    const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
+      for (const voice of voices) {
+        const ext = voice.blob.type.includes("mp4") ? "mp4" : "mp3";
 
-    const fileRef = ref(
-      storage,
-      `recordings/${user.user_id}-${Date.now()}-${voice.id}.${ext}`
-    );
+        const fileRef = ref(
+          storage,
+          `recordings/${user.user_id}-${Date.now()}-${voice.id}.${ext}`
+        );
 
-    await uploadBytes(fileRef, voice.blob);
-    const url = await getDownloadURL(fileRef);
-    uploadedVoiceURLs.push(url);
-  }
+        await uploadBytes(fileRef, voice.blob);
+        const url = await getDownloadURL(fileRef);
+        uploadedVoiceURLs.push(url);
+      }
 
-  setUploading(false);
+      setUploading(false);
 
       const submission = {
         requirment_id: "",
@@ -148,7 +148,7 @@ const uploadedVoiceURLs: string[] = [];
         code: generateCode(),
         lead_person: user.username,
         plot_ownership: selectedPlot,
-        voice_recordings: uploadedVoiceURLs, 
+        voice_recordings: uploadedVoiceURLs,
         ...formData,
         createdAt: serverTimestamp(),
       };
@@ -173,8 +173,8 @@ const uploadedVoiceURLs: string[] = [];
         expo_location: "",
       });
       setSelectedPlot(null);
-  setVoices([]);
-setVoiceUrl(null); // optional
+      setVoices([]);
+      setVoiceUrl(null); // optional
       setVoiceUrl(null);
       setSubmitLoading(false);
     } catch (err) {
@@ -449,9 +449,8 @@ setVoiceUrl(null); // optional
             {["Own a plot", "Looking for a plot"].map((val) => (
               <div
                 key={val}
-                className={`plot_option ${
-                  selectedPlot === val ? "active" : ""
-                }`}
+                className={`plot_option ${selectedPlot === val ? "active" : ""
+                  }`}
                 onClick={() =>
                   setSelectedPlot(selectedPlot === val ? null : val)
                 }
