@@ -17,9 +17,9 @@ const Header = () => {
 
     // const user = useUser();
     const navigate = useNavigate();
-    console.log("user: ", user)
+    console.log("user: ", user);
 
-    const [isMenu, setIsMenu] = useState(false)
+    const [isMenu, setIsMenu] = useState(false);
 
     return (
         // <div className="header_section" style={{ backgroundColor: "teal" }} >
