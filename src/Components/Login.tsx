@@ -25,7 +25,6 @@ export default function Login() {
 
             const q = query(
                 collection(db, "users"),
-                where("role", "==", "admin"),
                 where("login_id", "==", loginId),
                 where("password", "==", hashedPw)
             );
